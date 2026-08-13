@@ -3,10 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { CATEGORY_META } from "@/lib/categories";
 
 type Category = keyof typeof CATEGORY_META;
@@ -161,83 +158,98 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
     }
   }
 
-  // ---- Draft screen -------------------------------------------------------
+  // ---- Draft screen (kiosk-mode: large touch targets, institutional) ------
   if (phase === "draft" || phase === "submitting") {
     const s = draft!.suggestion;
     const trust = draft!.verdict.captureTrust;
     return (
-      <div className="space-y-4">
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         {previewUrl && (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={previewUrl}
             alt="captured issue"
-            className="w-full rounded-lg border object-cover"
+            style={{
+              width: "100%",
+              border: "1px solid var(--gov-border)",
+              objectFit: "cover",
+            }}
           />
         )}
 
-        <Card>
-          <CardContent className="space-y-4 pt-6">
+        <div className="gov-card">
+          <div className="gov-card__header">Review & Submit Complaint</div>
+          <div className="gov-card__body" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {/* Category suggestion */}
             <div>
-              <div className="mb-2 text-sm text-muted-foreground">
-                Looks like{" "}
-                <span className="font-medium text-foreground">
+              <div style={{ fontSize: "0.857rem", color: "var(--text-muted)", marginBottom: "6px" }}>
+                Detected category:{" "}
+                <strong style={{ color: "var(--text)" }}>
                   {CATEGORY_META[s.category].label}
-                </span>
+                </strong>
                 {s.ward
                   ? ` → Ward ${s.ward.wardNo}, ${s.ward.municipalityName}`
                   : " → outside seeded wards (no auto-routing)"}
-                . Not right? Pick below.
+                . Not correct? Select below:
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {categories.map((c) => (
                   <button
                     key={c}
                     type="button"
                     onClick={() => setChosenCategory(c as Category)}
-                    className={`rounded-full border px-3 py-1 text-sm ${
+                    className={
                       chosenCategory === c
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    }`}
+                        ? "gov-btn gov-btn--primary gov-btn--sm"
+                        : "gov-btn gov-btn--secondary gov-btn--sm"
+                    }
+                    style={{ minHeight: "36px" }}
                   >
-                    {CATEGORY_META[c as Category].emoji} {CATEGORY_META[c as Category].label}
+                    {CATEGORY_META[c as Category].label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 text-xs">
-              <Badge variant={trust >= 0.75 ? "secondary" : "destructive"}>
-                capture trust {(trust * 100).toFixed(0)}%
-              </Badge>
+            {/* Trust & verdict badges */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              <span className={trust >= 0.75 ? "gov-badge gov-badge--success" : "gov-badge gov-badge--danger"}>
+                Capture Trust: {(trust * 100).toFixed(0)}%
+              </span>
               {draft!.verdict.combined === "MANUAL_REVIEW" && (
-                <Badge variant="outline">routed to manual review</Badge>
+                <span className="gov-badge gov-badge--saffron">Routed to Manual Review</span>
               )}
               {draft!.verdict.combined === "CLEAN_HIGH_TRUST" && (
-                <Badge variant="outline">clean · auto-routed</Badge>
+                <span className="gov-badge gov-badge--success">Verified · Auto-Routed</span>
               )}
             </div>
 
+            {/* Description */}
             <div>
+              <label style={{ display: "block", fontWeight: 600, fontSize: "0.857rem", marginBottom: "4px" }}>
+                Description (optional, max 200 characters)
+              </label>
               <Textarea
-                placeholder="Optional: add a short description (max 200 chars)"
+                placeholder="Add a short description of the issue"
                 maxLength={200}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                style={{ borderRadius: 0, border: "1px solid var(--gov-border)" }}
               />
             </div>
 
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
+            {/* Actions — large touch targets for kiosk mode */}
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                className="gov-btn gov-btn--primary gov-btn--lg"
+                style={{ flex: 1 }}
                 onClick={submitReport}
                 disabled={phase === "submitting"}
               >
-                {phase === "submitting" ? "Submitting…" : "Submit report"}
-              </Button>
-              <Button
-                variant="outline"
+                {phase === "submitting" ? "Submitting…" : "Submit Complaint"}
+              </button>
+              <button
+                className="gov-btn gov-btn--secondary gov-btn--lg"
                 onClick={() => {
                   setDraft(null);
                   setPhase("capture");
@@ -246,47 +258,57 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
                 disabled={phase === "submitting"}
               >
                 Retake
-              </Button>
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
 
-  // ---- Capture screen -----------------------------------------------------
+  // ---- Capture screen (kiosk-mode: full-bleed camera, large shutter) ------
   return (
-    <div className="space-y-4">
-      <div className="relative overflow-hidden rounded-lg border bg-black">
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      <div style={{ position: "relative", overflow: "hidden", border: "1px solid var(--gov-border)", background: "#000" }}>
         <video
           ref={videoRef}
           playsInline
           muted
-          className="aspect-[3/4] w-full object-cover"
+          style={{ aspectRatio: "3/4", width: "100%", objectFit: "cover", display: "block" }}
         />
         {phase === "analyzing" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-sm text-white">
-            Analyzing photo… (spam &amp; duplicate checks)
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.6)",
+            color: "#fff",
+            fontSize: "1rem",
+          }}>
+            Analyzing photograph… (verification in progress)
           </div>
         )}
       </div>
-      <canvas ref={canvasRef} className="hidden" />
+      <canvas ref={canvasRef} style={{ display: "none" }} />
 
       {cameraError && (
-        <p className="text-sm text-destructive">{cameraError}</p>
+        <div className="gov-notice gov-notice--danger">{cameraError}</div>
       )}
 
-      <Button
-        className="w-full"
+      <button
+        className="gov-btn gov-btn--saffron gov-btn--lg gov-btn--block"
         onClick={shutter}
         disabled={phase === "analyzing" || !!cameraError}
+        style={{ fontSize: "1.1rem", minHeight: "52px" }}
       >
-        {phase === "analyzing" ? "Analyzing…" : "📸 Capture"}
-      </Button>
-      <p className="text-xs text-muted-foreground">
+        {phase === "analyzing" ? "Analyzing…" : "📸 Capture Photograph"}
+      </button>
+      <div className="gov-notice gov-notice--info" style={{ margin: 0 }}>
         In-app camera only. This binds your live GPS location and timestamp to
-        the photo at the moment of capture.
-      </p>
+        the photograph at the moment of capture.
+      </div>
     </div>
   );
 }

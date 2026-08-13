@@ -42,13 +42,10 @@ export function UpvoteButton({
       onClick={toggle}
       disabled={busy}
       aria-pressed={upvoted}
-      className={`inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm ${
-        upvoted ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted"
-      }`}
+      className={upvoted ? "gov-btn gov-btn--primary" : "gov-btn gov-btn--secondary"}
     >
-      <span>▲</span>
-      <span className="tabular-nums">{count}</span>
-      <span>{upvoted ? "Upvoted" : "Upvote"}</span>
+      ▲ <span style={{ fontVariantNumeric: "tabular-nums" }}>{count}</span>{" "}
+      {upvoted ? "Upvoted" : "Upvote"}
     </button>
   );
 }

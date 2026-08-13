@@ -5,8 +5,7 @@ import Link from "next/link";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { categoryEmoji, categoryLabel } from "@/lib/categories";
+import { categoryLabel } from "@/lib/categories";
 
 interface FeedItem {
   id: string;
@@ -35,11 +34,17 @@ const OSM_STYLE: maplibregl.StyleSpecification = {
   layers: [{ id: "osm", type: "raster", source: "osm" }],
 };
 
-function timeAgo(iso: string): string {
-  const s = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function statusClass(status: string): string {
+  const s = status.toLowerCase().replace(/ /g, "_");
+  return `gov-status gov-status--${s}`;
 }
 
 export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean }) {
@@ -78,81 +83,75 @@ export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean
   }
 
   return (
-    <div className="space-y-4">
-      <div className="inline-flex rounded-md border p-0.5 text-sm">
+    <div>
+      {/* View toggle */}
+      <div style={{ marginBottom: "12px", display: "flex", gap: "0" }}>
         <button
           onClick={() => setTab("list")}
-          className={`rounded px-3 py-1 ${tab === "list" ? "bg-muted font-medium" : ""}`}
+          className={tab === "list" ? "gov-btn gov-btn--primary gov-btn--sm" : "gov-btn gov-btn--secondary gov-btn--sm"}
         >
-          List
+          Table View
         </button>
         <button
           onClick={() => setTab("map")}
-          className={`rounded px-3 py-1 ${tab === "map" ? "bg-muted font-medium" : ""}`}
+          className={tab === "map" ? "gov-btn gov-btn--primary gov-btn--sm" : "gov-btn gov-btn--secondary gov-btn--sm"}
         >
-          Map
+          Map View
         </button>
       </div>
 
       {tab === "map" ? (
         <FeedMap items={rows} />
       ) : (
-        <ul className="space-y-3">
-          {rows.map((r) => (
-            <li key={r.id} className="flex gap-3 rounded-lg border p-3">
-              <Link href={`/report/${r.id}`} className="shrink-0">
-                {r.thumbnailUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={r.thumbnailUrl}
-                    alt={r.category}
-                    className="h-20 w-20 rounded-md object-cover"
-                  />
-                ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-md bg-muted text-2xl">
-                    {categoryEmoji(r.category)}
-                  </div>
-                )}
-              </Link>
-              <div className="min-w-0 flex-1">
-                <Link href={`/report/${r.id}`} className="font-medium hover:underline">
-                  {categoryEmoji(r.category)} {categoryLabel(r.category)}
-                </Link>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline">{r.status}</Badge>
-                  <span>
-                    {r.municipalityName
-                      ? `Ward ${r.wardNo}, ${r.municipalityName}`
-                      : "Unmapped area"}
-                  </span>
-                  <span>· {timeAgo(r.createdAt)}</span>
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  📍 {r.lat.toFixed(6)}, {r.lng.toFixed(6)}{" "}
-                  <a
-                    href={`https://www.openstreetmap.org/?mlat=${r.lat}&mlon=${r.lng}#map=18/${r.lat}/${r.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-foreground"
-                    onClick={(e) => e.stopPropagation()}
+        <table className="gov-table">
+          <thead>
+            <tr>
+              <th>S.No.</th>
+              <th>Category</th>
+              <th>Ward / Area</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th style={{ textAlign: "center" }}>Upvotes</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={r.id}>
+                <td>{i + 1}</td>
+                <td>{categoryLabel(r.category)}</td>
+                <td>
+                  {r.municipalityName
+                    ? `Ward ${r.wardNo}, ${r.municipalityName}`
+                    : "Unmapped area"}
+                </td>
+                <td>
+                  <span className={statusClass(r.status)}>{r.status}</span>
+                </td>
+                <td style={{ whiteSpace: "nowrap" }}>{formatDate(r.createdAt)}</td>
+                <td style={{ textAlign: "center" }}>
+                  <button
+                    onClick={() => upvote(r.id)}
+                    className={r.viewerUpvoted ? "gov-btn gov-btn--primary gov-btn--sm" : "gov-btn gov-btn--secondary gov-btn--sm"}
+                    aria-pressed={r.viewerUpvoted}
+                    style={{ padding: "2px 10px", minWidth: "50px" }}
                   >
-                    open map
-                  </a>
-                </div>
-              </div>
-              <button
-                onClick={() => upvote(r.id)}
-                className={`flex flex-col items-center rounded-md border px-3 py-1 text-sm ${
-                  r.viewerUpvoted ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted"
-                }`}
-                aria-pressed={r.viewerUpvoted}
-              >
-                <span>▲</span>
-                <span className="tabular-nums">{r.upvoteCount}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+                    ▲ <span style={{ fontVariantNumeric: "tabular-nums" }}>{r.upvoteCount}</span>
+                  </button>
+                </td>
+                <td>
+                  <Link
+                    href={`/report/${r.id}`}
+                    className="gov-btn gov-btn--secondary gov-btn--sm"
+                    style={{ padding: "2px 10px" }}
+                  >
+                    View
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );
@@ -173,15 +172,11 @@ function FeedMap({ items }: { items: FeedItem[] }) {
     map.addControl(new maplibregl.NavigationControl(), "top-right");
 
     for (const it of items) {
-      const el = document.createElement("div");
-      el.textContent = categoryEmoji(it.category);
-      el.style.fontSize = "22px";
-      el.style.cursor = "pointer";
-      new maplibregl.Marker({ element: el })
+      new maplibregl.Marker()
         .setLngLat([it.lng, it.lat])
         .setPopup(
           new maplibregl.Popup({ offset: 24 }).setHTML(
-            `<strong>${categoryLabel(it.category)}</strong><br/>${it.status} · ▲ ${it.upvoteCount}<br/><a href="/report/${it.id}">Open</a>`,
+            `<strong>${categoryLabel(it.category)}</strong><br/>${it.status} · ▲ ${it.upvoteCount}<br/><a href="/report/${it.id}">View Details</a>`,
           ),
         )
         .addTo(map);
@@ -190,5 +185,15 @@ function FeedMap({ items }: { items: FeedItem[] }) {
     return () => map.remove();
   }, [items]);
 
-  return <div ref={ref} className="h-[70vh] w-full overflow-hidden rounded-lg border" />;
+  return (
+    <div
+      ref={ref}
+      style={{
+        height: "70vh",
+        width: "100%",
+        border: "1px solid var(--gov-border)",
+        overflow: "hidden",
+      }}
+    />
+  );
 }

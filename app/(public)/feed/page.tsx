@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/session";
 import { listFeed } from "@/lib/services/reports";
 import { FeedView } from "@/components/feed-view";
+import { Breadcrumbs } from "@/components/gov/breadcrumbs";
+import { SidebarNav } from "@/components/gov/sidebar-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -10,23 +11,26 @@ export default async function FeedPage() {
   const items = await listFeed(user?.id ?? null);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Nearby issues</h1>
-        <Link
-          href="/report/new"
-          className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground"
-        >
-          Report an issue
-        </Link>
+    <>
+      <Breadcrumbs
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Public Grievance Reports" },
+        ]}
+      />
+      <div className="gov-container gov-interior">
+        <SidebarNav />
+        <div className="gov-interior__main">
+          <h1 style={{ marginBottom: "12px" }}>Public Grievance Reports</h1>
+          {items.length === 0 ? (
+            <div className="gov-notice gov-notice--info">
+              No grievance reports have been registered yet. Be the first citizen to report a civic issue.
+            </div>
+          ) : (
+            <FeedView items={items} authed={!!user} />
+          )}
+        </div>
       </div>
-      {items.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No reports yet. Be the first to report an issue.
-        </p>
-      ) : (
-        <FeedView items={items} authed={!!user} />
-      )}
-    </div>
+    </>
   );
 }

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 50" width="160" height="50">
+  <!-- Fictional scheme logo — "Swachh Nagarpratinidhi" styled like Swachh Bharat -->
+  <rect width="160" height="50" fill="#138808" rx="0"/>
+  <rect x="0" y="0" width="6" height="50" fill="#ff9933"/>
+  <text x="16" y="22" font-family="'Noto Sans', Arial, sans-serif" font-size="11" font-weight="700" fill="#ffffff" letter-spacing="0.5">SWACHH</text>
+  <text x="16" y="38" font-family="'Noto Sans', Arial, sans-serif" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="0.5">NAGARPRATINIDHI</text>
+  <!-- Small circle motif -->
+  <circle cx="144" cy="25" r="10" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="144" cy="25" r="5" fill="#ffffff" opacity="0.3"/>
+</svg>

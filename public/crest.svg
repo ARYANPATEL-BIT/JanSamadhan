@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Fictional municipality crest — shield with civic motifs -->
+  <!-- NOT the Ashoka Lion Capital -->
+  <defs>
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b2d5c"/>
+      <stop offset="100%" stop-color="#071e3e"/>
+    </linearGradient>
+  </defs>
+  <!-- Shield shape -->
+  <path d="M60 8 L108 28 L108 65 Q108 95 60 112 Q12 95 12 65 L12 28 Z" fill="url(#shieldGrad)" stroke="#ff9933" stroke-width="2.5"/>
+  <!-- Inner border -->
+  <path d="M60 15 L101 32 L101 63 Q101 90 60 105 Q19 90 19 63 L19 32 Z" fill="none" stroke="#ff9933" stroke-width="1" opacity="0.5"/>
+  <!-- Gear/wheel motif (civic infrastructure) -->
+  <circle cx="60" cy="52" r="18" fill="none" stroke="#ff9933" stroke-width="2"/>
+  <circle cx="60" cy="52" r="12" fill="none" stroke="#ff9933" stroke-width="1.5"/>
+  <!-- Gear teeth -->
+  <g stroke="#ff9933" stroke-width="2">
+    <line x1="60" y1="32" x2="60" y2="37"/>
+    <line x1="60" y1="67" x2="60" y2="72"/>
+    <line x1="40" y1="52" x2="45" y2="52"/>
+    <line x1="75" y1="52" x2="80" y2="52"/>
+    <line x1="46" y1="38" x2="49" y2="41"/>
+    <line x1="71" y1="63" x2="74" y2="66"/>
+    <line x1="74" y1="38" x2="71" y2="41"/>
+    <line x1="49" y1="63" x2="46" y2="66"/>
+  </g>
+  <!-- Road/bridge motif inside gear -->
+  <path d="M52 52 L60 46 L68 52 L60 58 Z" fill="#ff9933" opacity="0.8"/>
+  <!-- Three pillars (governance) -->
+  <rect x="51" y="78" width="4" height="14" fill="#ff9933" opacity="0.7"/>
+  <rect x="58" y="75" width="4" height="17" fill="#ff9933" opacity="0.9"/>
+  <rect x="65" y="78" width="4" height="14" fill="#ff9933" opacity="0.7"/>
+  <!-- Arch over pillars -->
+  <path d="M49 78 Q60 68 71 78" fill="none" stroke="#ff9933" stroke-width="1.5"/>
+  <!-- Stars -->
+  <circle cx="40" cy="25" r="2" fill="#ff9933"/>
+  <circle cx="60" cy="20" r="2" fill="#ff9933"/>
+  <circle cx="80" cy="25" r="2" fill="#ff9933"/>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 50" width="160" height="50">
+  <!-- Fictional scheme logo — "Digital Nagarpratinidhi" styled like Digital India -->
+  <rect width="160" height="50" fill="#0b2d5c" rx="0"/>
+  <rect x="0" y="0" width="6" height="50" fill="#ff9933"/>
+  <text x="16" y="22" font-family="'Noto Sans', Arial, sans-serif" font-size="11" font-weight="700" fill="#ffffff" letter-spacing="0.5">DIGITAL</text>
+  <text x="16" y="38" font-family="'Noto Sans', Arial, sans-serif" font-size="13" font-weight="700" fill="#ff9933" letter-spacing="0.5">NAGARPRATIN IDHI</text>
+  <!-- Horizontal line accent -->
+  <line x1="16" y1="26" x2="145" y2="26" stroke="#ff9933" stroke-width="0.5" opacity="0.4"/>
+</svg>

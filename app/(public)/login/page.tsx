@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 
 const LANGS = [
   { code: "en", label: "English" },
@@ -70,81 +67,112 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>{step === "phone" ? "Log in" : "Enter OTP"}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div style={{ maxWidth: "480px", margin: "0 auto", padding: "20px 0" }}>
+      <div className="gov-card">
+        <div className="gov-card__header">
+          {step === "phone" ? "Citizen Login — OTP Verification" : "Enter One-Time Password"}
+        </div>
+        <div className="gov-card__body" style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           {step === "phone" ? (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone number</Label>
-                <Input
-                  id="phone"
-                  inputMode="numeric"
-                  placeholder="10-digit mobile"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Language</Label>
-                <div className="flex flex-wrap gap-2">
-                  {LANGS.map((l) => (
-                    <button
-                      key={l.code}
-                      type="button"
-                      onClick={() => setLang(l.code)}
-                      className={`rounded-full border px-3 py-1 text-sm ${
-                        lang === l.code
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      {l.label}
-                    </button>
-                  ))}
+              <div className="gov-form-row">
+                <label className="gov-form-row__label" htmlFor="phone">
+                  Mobile Number
+                </label>
+                <div className="gov-form-row__field">
+                  <Input
+                    id="phone"
+                    inputMode="numeric"
+                    placeholder="Enter 10-digit mobile number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    style={{ borderRadius: 0 }}
+                  />
+                  <div className="gov-form-row__hint">
+                    An OTP will be sent to this mobile number for verification
+                  </div>
                 </div>
               </div>
-              <Button
-                className="w-full"
-                onClick={requestCode}
-                disabled={busy || phone.replace(/\D/g, "").length < 10}
-              >
-                {busy ? "Sending…" : "Send OTP"}
-              </Button>
+
+              <div className="gov-form-row">
+                <label className="gov-form-row__label">
+                  Language
+                </label>
+                <div className="gov-form-row__field">
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {LANGS.map((l) => (
+                      <button
+                        key={l.code}
+                        type="button"
+                        onClick={() => setLang(l.code)}
+                        className={l.code === lang ? "gov-btn gov-btn--primary gov-btn--sm" : "gov-btn gov-btn--secondary gov-btn--sm"}
+                      >
+                        {l.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <button
+                  className="gov-btn gov-btn--primary"
+                  onClick={requestCode}
+                  disabled={busy || phone.replace(/\D/g, "").length < 10}
+                >
+                  {busy ? "Sending…" : "Send OTP"}
+                </button>
+              </div>
             </>
           ) : (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="code">6-digit code sent to {phone}</Label>
-                <Input
-                  id="code"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="______"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  In dev the code is logged to the server console and shown above.
-                </p>
+              <div className="gov-form-row">
+                <label className="gov-form-row__label" htmlFor="code">
+                  OTP Code
+                </label>
+                <div className="gov-form-row__field">
+                  <Input
+                    id="code"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="Enter 6-digit OTP"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    style={{ borderRadius: 0 }}
+                  />
+                  <div className="gov-form-row__hint">
+                    6-digit code sent to {phone}. In dev mode, the code is logged to the server console.
+                  </div>
+                </div>
               </div>
-              <Button className="w-full" onClick={verify} disabled={busy || code.length !== 6}>
-                {busy ? "Verifying…" : "Verify & continue"}
-              </Button>
-              <button
-                type="button"
-                className="w-full text-sm text-muted-foreground hover:underline"
-                onClick={() => setStep("phone")}
-              >
-                ← Change number
-              </button>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <button
+                  type="button"
+                  onClick={() => setStep("phone")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--link)",
+                    textDecoration: "underline",
+                    cursor: "pointer",
+                    fontSize: "0.857rem",
+                  }}
+                >
+                  ← Change Number
+                </button>
+                <button
+                  className="gov-btn gov-btn--primary"
+                  onClick={verify}
+                  disabled={busy || code.length !== 6}
+                >
+                  {busy ? "Verifying…" : "Verify & Continue"}
+                </button>
+              </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
