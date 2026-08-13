@@ -19,9 +19,16 @@ interface DraftResponse {
   suggestion: {
     category: Category;
     confidence: number;
+    confidenceDecision: "AUTO_ACCEPT" | "SUGGEST" | "MANUAL";
     ward: { wardNo: number; municipalityName: string } | null;
     hasDepartment: boolean;
     imageUrl: string;
+  };
+  ai: {
+    status: "completed" | "failed" | "skipped";
+    spamSuspected: boolean;
+    isCivicIssue: boolean;
+    engine: string;
   };
 }
 
@@ -161,7 +168,10 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
   // ---- Draft screen (kiosk-mode: large touch targets, institutional) ------
   if (phase === "draft" || phase === "submitting") {
     const s = draft!.suggestion;
+    const ai = draft!.ai;
     const trust = draft!.verdict.captureTrust;
+    const confDecision = s.confidenceDecision;
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         {previewUrl && (
@@ -180,18 +190,97 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
         <div className="gov-card">
           <div className="gov-card__header">Review & Submit Complaint</div>
           <div className="gov-card__body" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {/* Category suggestion */}
+
+            {/* --- AI Analysis Status --- */}
+            {ai.status === "failed" && (
+              <div className="gov-notice gov-notice--info" style={{ margin: 0 }}>
+                Automatic image analysis is temporarily unavailable.
+                You can select the issue category manually.
+              </div>
+            )}
+
+            {/* --- Spam / legitimacy warning --- */}
+            {ai.spamSuspected && (
+              <div className="gov-notice gov-notice--info" style={{ margin: 0 }}>
+                We couldn&apos;t verify that this image clearly shows the reported issue.
+                Your report can still be submitted for review.
+              </div>
+            )}
+
+            {/* --- Confidence-based category display --- */}
             <div>
               <div style={{ fontSize: "0.857rem", color: "var(--text-muted)", marginBottom: "6px" }}>
-                Detected category:{" "}
-                <strong style={{ color: "var(--text)" }}>
-                  {CATEGORY_META[s.category].label}
-                </strong>
-                {s.ward
-                  ? ` → Ward ${s.ward.wardNo}, ${s.ward.municipalityName}`
-                  : " → outside seeded wards (no auto-routing)"}
-                . Not correct? Select below:
+                {confDecision === "AUTO_ACCEPT" && ai.status === "completed" && (
+                  <>
+                    <span style={{ color: "var(--gov-green)" }}>✓</span>{" "}
+                    Automatically categorized as{" "}
+                    <strong style={{ color: "var(--text)" }}>
+                      {CATEGORY_META[s.category]?.label ?? s.category}
+                    </strong>
+                    {s.ward
+                      ? ` → Ward ${s.ward.wardNo}, ${s.ward.municipalityName}`
+                      : " → outside seeded wards (no auto-routing)"}
+                    {" "}({(s.confidence * 100).toFixed(0)}% confidence).
+                    Not correct? Select below:
+                  </>
+                )}
+                {confDecision === "SUGGEST" && ai.status === "completed" && (
+                  <>
+                    We think this may be a{" "}
+                    <strong style={{ color: "var(--text)" }}>
+                      {CATEGORY_META[s.category]?.label ?? s.category}
+                    </strong>
+                    {s.ward
+                      ? ` → Ward ${s.ward.wardNo}, ${s.ward.municipalityName}`
+                      : ""}
+                    {" "}({(s.confidence * 100).toFixed(0)}% confidence).
+                    Is that correct?
+                  </>
+                )}
+                {(confDecision === "MANUAL" || ai.status !== "completed") && (
+                  <>
+                    {ai.status === "completed"
+                      ? "We couldn't confidently identify the issue."
+                      : "Please select the issue category:"}
+                    {s.ward
+                      ? ` Location: Ward ${s.ward.wardNo}, ${s.ward.municipalityName}.`
+                      : ""}
+                  </>
+                )}
               </div>
+
+              {/* Quick confirm/reject for SUGGEST mode */}
+              {confDecision === "SUGGEST" && ai.status === "completed" && (
+                <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setChosenCategory(s.category)}
+                    className={
+                      chosenCategory === s.category
+                        ? "gov-btn gov-btn--primary gov-btn--sm"
+                        : "gov-btn gov-btn--secondary gov-btn--sm"
+                    }
+                    style={{ minHeight: "36px" }}
+                  >
+                    ✓ Yes, that&apos;s correct
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Show all categories by ensuring current doesn't match suggestion
+                      if (chosenCategory === s.category) {
+                        setChosenCategory("other" as Category);
+                      }
+                    }}
+                    className="gov-btn gov-btn--secondary gov-btn--sm"
+                    style={{ minHeight: "36px" }}
+                  >
+                    Choose another category
+                  </button>
+                </div>
+              )}
+
+              {/* Category picker — always shown for MANUAL, shown when user wants to change for others */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {categories.map((c) => (
                   <button
@@ -205,7 +294,7 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
                     }
                     style={{ minHeight: "36px" }}
                   >
-                    {CATEGORY_META[c as Category].label}
+                    {CATEGORY_META[c as Category]?.label ?? c}
                   </button>
                 ))}
               </div>
@@ -216,13 +305,51 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
               <span className={trust >= 0.75 ? "gov-badge gov-badge--success" : "gov-badge gov-badge--danger"}>
                 Capture Trust: {(trust * 100).toFixed(0)}%
               </span>
+              {ai.status === "completed" && s.confidence > 0 && (
+                <span className={
+                  s.confidence >= 0.75
+                    ? "gov-badge gov-badge--success"
+                    : s.confidence >= 0.5
+                      ? "gov-badge gov-badge--saffron"
+                      : "gov-badge gov-badge--danger"
+                }>
+                  AI Confidence: {(s.confidence * 100).toFixed(0)}%
+                </span>
+              )}
+              {ai.status === "completed" && ai.engine !== "stub" && (
+                <span className="gov-badge gov-badge--success" style={{ fontSize: "0.7rem" }}>
+                  AI Verified
+                </span>
+              )}
+              {ai.status === "failed" && (
+                <span className="gov-badge gov-badge--danger" style={{ fontSize: "0.7rem" }}>
+                  AI Unavailable
+                </span>
+              )}
               {draft!.verdict.combined === "MANUAL_REVIEW" && (
                 <span className="gov-badge gov-badge--saffron">Routed to Manual Review</span>
               )}
               {draft!.verdict.combined === "CLEAN_HIGH_TRUST" && (
                 <span className="gov-badge gov-badge--success">Verified · Auto-Routed</span>
               )}
+              {draft!.verdict.combined === "DUPLICATE_CANDIDATES" && (
+                <span className="gov-badge gov-badge--saffron">Possible Duplicate Detected</span>
+              )}
+              {ai.spamSuspected && (
+                <span className="gov-badge gov-badge--danger">Needs Verification</span>
+              )}
             </div>
+
+            {/* Duplicate candidate notice */}
+            {draft!.verdict.combined === "DUPLICATE_CANDIDATES" &&
+              Array.isArray(draft!.verdict.candidates) &&
+              draft!.verdict.candidates.length > 0 && (
+              <div className="gov-notice gov-notice--info" style={{ margin: 0 }}>
+                <strong>Possible duplicate:</strong>{" "}
+                {draft!.verdict.candidates.length} similar report(s) found nearby.
+                Your report can still be submitted — it will be reviewed for duplicates.
+              </div>
+            )}
 
             {/* Description */}
             <div>
@@ -281,13 +408,27 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
             position: "absolute",
             inset: 0,
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
             background: "rgba(0,0,0,0.6)",
             color: "#fff",
             fontSize: "1rem",
+            gap: "12px",
           }}>
-            Analyzing photograph… (verification in progress)
+            <div style={{
+              width: "40px",
+              height: "40px",
+              border: "3px solid rgba(255,255,255,0.3)",
+              borderTop: "3px solid #fff",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+            }} />
+            <div>Analyzing your image…</div>
+            <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>
+              Verifying image and detecting issue category
+            </div>
+            <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
           </div>
         )}
       </div>
