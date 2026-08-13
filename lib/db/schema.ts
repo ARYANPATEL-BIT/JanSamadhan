@@ -62,8 +62,6 @@ const bit64 = customType<{ data: string; driverData: string }>({
 // ---------------------------------------------------------------------------
 export const langEnum = pgEnum("lang", ["en", "hi", "bn", "mr", "ta", "te"]);
 
-export const tierEnum = pgEnum("tier", ["BRONZE", "SILVER", "GOLD", "PLATINUM"]);
-
 // §5.1 category set.
 export const categoryEnum = pgEnum("category", [
   "pothole",
@@ -119,7 +117,6 @@ export const users = pgTable("users", {
   name: text("name"),
   lang: langEnum("lang").notNull().default("en"),
   civicScore: integer("civic_score").notNull().default(0),
-  tier: tierEnum("tier").notNull().default("BRONZE"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -1,13 +1,12 @@
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   HeadBucketCommand,
   CreateBucketCommand,
-  PutBucketPolicyCommand,
 } from "@aws-sdk/client-s3";
 
 const bucket = process.env.S3_BUCKET ?? "civic-media";
-const publicBase = process.env.S3_PUBLIC_URL ?? `http://localhost:9000/${bucket}`;
 
 const client = new S3Client({
   endpoint: process.env.S3_ENDPOINT ?? "http://localhost:9000",
@@ -21,34 +20,24 @@ const client = new S3Client({
 
 let ensured = false;
 
-/** Create the bucket on first use and make objects publicly readable (dev). */
+/** Create the bucket on first use. Objects are served via the app's /media
+ *  proxy (getObject), so MinIO itself stays private — no public-read policy. */
 async function ensureBucket(): Promise<void> {
   if (ensured) return;
   try {
     await client.send(new HeadBucketCommand({ Bucket: bucket }));
   } catch {
     await client.send(new CreateBucketCommand({ Bucket: bucket }));
-    await client.send(
-      new PutBucketPolicyCommand({
-        Bucket: bucket,
-        Policy: JSON.stringify({
-          Version: "2012-10-17",
-          Statement: [
-            {
-              Effect: "Allow",
-              Principal: { AWS: ["*"] },
-              Action: ["s3:GetObject"],
-              Resource: [`arn:aws:s3:::${bucket}/*`],
-            },
-          ],
-        }),
-      }),
-    );
   }
   ensured = true;
 }
 
-/** Upload bytes and return the public URL the browser can load. */
+/**
+ * Upload bytes and return an ORIGIN-RELATIVE URL (`/media/<key>`) served by the
+ * app's media proxy. Relative on purpose: the same stored URL then works over
+ * localhost, a LAN IP, or a Cloudflare tunnel with zero reconfiguration, and
+ * MinIO never has to be exposed to other devices.
+ */
 export async function putObject(
   key: string,
   bytes: Uint8Array,
@@ -63,5 +52,21 @@ export async function putObject(
       ContentType: contentType,
     }),
   );
-  return `${publicBase}/${key}`;
+  return `/media/${key}`;
+}
+
+/** Stream an object back for the /media proxy route. Returns null if missing. */
+export async function getObject(
+  key: string,
+): Promise<{ stream: ReadableStream; contentType: string } | null> {
+  try {
+    const res = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    if (!res.Body) return null;
+    return {
+      stream: res.Body.transformToWebStream(),
+      contentType: res.ContentType ?? "application/octet-stream",
+    };
+  } catch {
+    return null;
+  }
 }

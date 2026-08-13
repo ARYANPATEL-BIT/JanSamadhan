@@ -127,6 +127,18 @@ export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean
                   </span>
                   <span>· {timeAgo(r.createdAt)}</span>
                 </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  📍 {r.lat.toFixed(6)}, {r.lng.toFixed(6)}{" "}
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${r.lat}&mlon=${r.lng}#map=18/${r.lat}/${r.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-foreground"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    open map
+                  </a>
+                </div>
               </div>
               <button
                 onClick={() => upvote(r.id)}

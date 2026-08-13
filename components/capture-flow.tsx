@@ -72,7 +72,7 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
       }
     } catch {
       setCameraError(
-        "Camera unavailable or permission denied. You can upload from your gallery instead.",
+        "Camera unavailable or permission denied. Please allow camera access and reload — reporting requires an in-app photo.",
       );
     }
   }, []);
@@ -136,11 +136,6 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
       "image/jpeg",
       0.9,
     );
-  }
-
-  function onGalleryPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) submitDraft(file, "GALLERY");
   }
 
   async function submitReport() {
@@ -281,28 +276,16 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
         <p className="text-sm text-destructive">{cameraError}</p>
       )}
 
-      <div className="flex gap-2">
-        <Button
-          className="flex-1"
-          onClick={shutter}
-          disabled={phase === "analyzing" || !!cameraError}
-        >
-          {phase === "analyzing" ? "Analyzing…" : "📸 Capture"}
-        </Button>
-        <label className="inline-flex cursor-pointer items-center rounded-md border px-3 py-2 text-sm hover:bg-muted">
-          Gallery
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={onGalleryPick}
-            disabled={phase === "analyzing"}
-          />
-        </label>
-      </div>
+      <Button
+        className="w-full"
+        onClick={shutter}
+        disabled={phase === "analyzing" || !!cameraError}
+      >
+        {phase === "analyzing" ? "Analyzing…" : "📸 Capture"}
+      </Button>
       <p className="text-xs text-muted-foreground">
-        In-app camera is the primary path. Gallery uploads are accepted but
-        flagged lower-trust and always manually reviewed.
+        In-app camera only. This binds your live GPS location and timestamp to
+        the photo at the moment of capture.
       </p>
     </div>
   );
