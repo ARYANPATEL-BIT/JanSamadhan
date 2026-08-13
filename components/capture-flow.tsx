@@ -20,9 +20,16 @@ interface DraftResponse {
   suggestion: {
     category: Category;
     confidence: number;
+    confidenceDecision: "AUTO_ACCEPT" | "SUGGEST" | "MANUAL";
     ward: { wardNo: number; municipalityName: string } | null;
     hasDepartment: boolean;
     imageUrl: string;
+  };
+  ai: {
+    status: "completed" | "failed" | "skipped";
+    spamSuspected: boolean;
+    isCivicIssue: boolean;
+    engine: string;
   };
 }
 
@@ -162,7 +169,10 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
   // ---- Draft screen (kiosk-mode: large touch targets, institutional) ------
   if (phase === "draft" || phase === "submitting") {
     const s = draft!.suggestion;
+    const ai = draft!.ai;
     const trust = draft!.verdict.captureTrust;
+    const confDecision = s.confidenceDecision;
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         {previewUrl && (
@@ -181,18 +191,95 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
         <div className="gov-card">
           <div className="gov-card__header">{t("reviewTitle")}</div>
           <div className="gov-card__body" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {/* Category suggestion */}
+
+            {/* --- AI Analysis Status --- */}
+            {ai.status === "failed" && (
+              <div className="gov-notice gov-notice--info" style={{ margin: 0 }}>
+                {t("aiUnavailableNotice")}
+              </div>
+            )}
+
+            {/* --- Spam / legitimacy warning --- */}
+            {ai.spamSuspected && (
+              <div className="gov-notice gov-notice--info" style={{ margin: 0 }}>
+                {t("aiSpamNotice")}
+              </div>
+            )}
+
+            {/* --- Confidence-based category display --- */}
             <div>
               <div style={{ fontSize: "0.857rem", color: "var(--text-muted)", marginBottom: "6px" }}>
-                {t("detectedCategory")}{" "}
-                <strong style={{ color: "var(--text)" }}>
-                  {tc(s.category)}
-                </strong>
-                {s.ward
-                  ? t("wardRoute", { ward: s.ward.wardNo, municipality: s.ward.municipalityName })
-                  : t("outsideWards")}
-                {t("notCorrect")}
+                {confDecision === "AUTO_ACCEPT" && ai.status === "completed" && (
+                  <>
+                    <span style={{ color: "var(--gov-green)" }}>✓</span>{" "}
+                    {t("aiAutoCategorized")}{" "}
+                    <strong style={{ color: "var(--text)" }}>
+                      {tc(s.category)}
+                    </strong>
+                    {s.ward
+                      ? t("wardRoute", { ward: s.ward.wardNo, municipality: s.ward.municipalityName })
+                      : t("outsideWards")}
+                    {" "}{t("aiConfidenceSuffix", { pct: (s.confidence * 100).toFixed(0) })}{" "}
+                    {t("aiNotCorrect")}
+                  </>
+                )}
+                {confDecision === "SUGGEST" && ai.status === "completed" && (
+                  <>
+                    {t("aiSuggest")}{" "}
+                    <strong style={{ color: "var(--text)" }}>
+                      {tc(s.category)}
+                    </strong>
+                    {s.ward
+                      ? t("wardRoute", { ward: s.ward.wardNo, municipality: s.ward.municipalityName })
+                      : ""}
+                    {" "}{t("aiConfidenceSuffix", { pct: (s.confidence * 100).toFixed(0) })}{" "}
+                    {t("aiIsThatCorrect")}
+                  </>
+                )}
+                {(confDecision === "MANUAL" || ai.status !== "completed") && (
+                  <>
+                    {ai.status === "completed"
+                      ? t("aiCantIdentify")
+                      : t("aiSelectCategory")}
+                    {s.ward
+                      ? ` ${t("aiLocation", { ward: s.ward.wardNo, municipality: s.ward.municipalityName })}`
+                      : ""}
+                  </>
+                )}
               </div>
+
+              {/* Quick confirm/reject for SUGGEST mode */}
+              {confDecision === "SUGGEST" && ai.status === "completed" && (
+                <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setChosenCategory(s.category)}
+                    className={
+                      chosenCategory === s.category
+                        ? "gov-btn gov-btn--primary gov-btn--sm"
+                        : "gov-btn gov-btn--secondary gov-btn--sm"
+                    }
+                    style={{ minHeight: "36px" }}
+                  >
+                    ✓ {t("aiYesCorrect")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Show all categories by ensuring current doesn't match suggestion
+                      if (chosenCategory === s.category) {
+                        setChosenCategory("other" as Category);
+                      }
+                    }}
+                    className="gov-btn gov-btn--secondary gov-btn--sm"
+                    style={{ minHeight: "36px" }}
+                  >
+                    {t("aiChooseAnother")}
+                  </button>
+                </div>
+              )}
+
+              {/* Category picker — always shown for MANUAL, shown when user wants to change for others */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {categories.map((c) => (
                   <button
@@ -217,13 +304,50 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
               <span className={trust >= 0.75 ? "gov-badge gov-badge--success" : "gov-badge gov-badge--danger"}>
                 {t("captureTrust", { pct: (trust * 100).toFixed(0) })}
               </span>
+              {ai.status === "completed" && s.confidence > 0 && (
+                <span className={
+                  s.confidence >= 0.75
+                    ? "gov-badge gov-badge--success"
+                    : s.confidence >= 0.5
+                      ? "gov-badge gov-badge--saffron"
+                      : "gov-badge gov-badge--danger"
+                }>
+                  {t("aiConfidence", { pct: (s.confidence * 100).toFixed(0) })}
+                </span>
+              )}
+              {ai.status === "completed" && ai.engine !== "stub" && (
+                <span className="gov-badge gov-badge--success" style={{ fontSize: "0.7rem" }}>
+                  {t("aiVerified")}
+                </span>
+              )}
+              {ai.status === "failed" && (
+                <span className="gov-badge gov-badge--danger" style={{ fontSize: "0.7rem" }}>
+                  {t("aiUnavailable")}
+                </span>
+              )}
               {draft!.verdict.combined === "MANUAL_REVIEW" && (
                 <span className="gov-badge gov-badge--saffron">{t("routedManual")}</span>
               )}
               {draft!.verdict.combined === "CLEAN_HIGH_TRUST" && (
                 <span className="gov-badge gov-badge--success">{t("verifiedAutoRouted")}</span>
               )}
+              {draft!.verdict.combined === "DUPLICATE_CANDIDATES" && (
+                <span className="gov-badge gov-badge--saffron">{t("aiPossibleDuplicate")}</span>
+              )}
+              {ai.spamSuspected && (
+                <span className="gov-badge gov-badge--danger">{t("aiNeedsVerification")}</span>
+              )}
             </div>
+
+            {/* Duplicate candidate notice */}
+            {draft!.verdict.combined === "DUPLICATE_CANDIDATES" &&
+              Array.isArray(draft!.verdict.candidates) &&
+              draft!.verdict.candidates.length > 0 && (
+              <div className="gov-notice gov-notice--info" style={{ margin: 0 }}>
+                <strong>{t("aiDuplicateLabel")}</strong>{" "}
+                {t("aiDuplicateText", { count: draft!.verdict.candidates.length })}
+              </div>
+            )}
 
             {/* Description */}
             <div>
@@ -282,13 +406,27 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
             position: "absolute",
             inset: 0,
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
             background: "rgba(0,0,0,0.6)",
             color: "#fff",
             fontSize: "1rem",
+            gap: "12px",
           }}>
-            {t("analyzing")}
+            <div style={{
+              width: "40px",
+              height: "40px",
+              border: "3px solid rgba(255,255,255,0.3)",
+              borderTop: "3px solid #fff",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+            }} />
+            <div>{t("analyzing")}</div>
+            <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>
+              {t("analyzingSub")}
+            </div>
+            <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
           </div>
         )}
       </div>

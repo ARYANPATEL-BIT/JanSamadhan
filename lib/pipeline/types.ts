@@ -104,7 +104,7 @@ export interface PipelineVerdict {
     l1ManualReview: number;
   };
   /** Which implementation produced this verdict. */
-  engine: "stub" | "http";
+  engine: "stub" | "http" | "gemini";
 }
 
 /** The canonical thresholds (CLAUDE.md domain rules — do not loosen). */

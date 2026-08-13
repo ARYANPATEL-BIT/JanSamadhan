@@ -40,7 +40,8 @@ export async function createReportFromTicket(args: CreateReportArgs): Promise<{ 
     const inserted = await tx.execute<{ id: string }>(sql`
       INSERT INTO reports (
         reporter_id, category, category_confidence, location, ward_id,
-        department_id, status, capture_trust, sla_due_at
+        department_id, status, capture_trust, sla_due_at,
+        spam_flag, duplicate_flag, ai_analysis_status, ai_reason
       ) VALUES (
         ${reporterId},
         ${category}::category,
@@ -50,7 +51,11 @@ export async function createReportFromTicket(args: CreateReportArgs): Promise<{ 
         ${dept?.departmentId ?? null},
         'SUBMITTED',
         ${ticket.captureTrust},
-        ${slaDueAt ? slaDueAt.toISOString() : null}
+        ${slaDueAt ? slaDueAt.toISOString() : null},
+        ${ticket.spamSuspected ?? false},
+        ${ticket.combined === "DUPLICATE_CANDIDATES"},
+        ${ticket.aiAnalysisStatus ?? "skipped"},
+        ${null}
       )
       RETURNING id
     `);
@@ -180,6 +185,11 @@ export async function getReport(id: string, viewerId: string | null) {
     municipality_name: string | null;
     department_name: string | null;
     capture_trust: number | null;
+    category_confidence: number | null;
+    spam_flag: boolean | string;
+    duplicate_flag: boolean | string;
+    ai_analysis_status: string | null;
+    ai_reason: string | null;
     viewer_upvoted: boolean | string;
   }>(sql`
     SELECT
@@ -191,6 +201,11 @@ export async function getReport(id: string, viewerId: string | null) {
       r.upvote_count,
       r.created_at,
       r.capture_trust,
+      r.category_confidence,
+      r.spam_flag,
+      r.duplicate_flag,
+      r.ai_analysis_status,
+      r.ai_reason,
       w.ward_no,
       m.name AS municipality_name,
       d.name AS department_name,
@@ -216,6 +231,8 @@ export async function getReport(id: string, viewerId: string | null) {
     ...row,
     upvote_count: Number(row.upvote_count) || 0,
     viewer_upvoted: row.viewer_upvoted === true || row.viewer_upvoted === "t",
+    spam_flag: row.spam_flag === true || row.spam_flag === "t",
+    duplicate_flag: row.duplicate_flag === true || row.duplicate_flag === "t",
     media,
   };
 }

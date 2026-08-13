@@ -31,7 +31,9 @@ export default async function ReportDetailPage({
   const category = tc(report.category);
 
   const primary = report.media.find((m) => m.kind === "REPORT") ?? report.media[0];
+  const afterMedia = report.media.find((m) => m.kind === "AFTER");
   const trust = report.capture_trust;
+  const confidence = report.category_confidence;
 
   return (
     <>
@@ -49,7 +51,43 @@ export default async function ReportDetailPage({
             {t("title", { category })}
           </h1>
 
-          {primary && (
+          {/* Before/After side-by-side if both exist */}
+          {primary && afterMedia ? (
+            <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "4px", color: "var(--text-muted)" }}>
+                  BEFORE
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={primary.url}
+                  alt={`${report.category} - before`}
+                  style={{
+                    width: "100%",
+                    maxHeight: "300px",
+                    objectFit: "cover",
+                    border: "1px solid var(--gov-border)",
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "4px", color: "var(--text-muted)" }}>
+                  AFTER
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={afterMedia.url}
+                  alt={`${report.category} - after`}
+                  style={{
+                    width: "100%",
+                    maxHeight: "300px",
+                    objectFit: "cover",
+                    border: "1px solid var(--gov-border)",
+                  }}
+                />
+              </div>
+            </div>
+          ) : primary ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={primary.url}
@@ -62,7 +100,7 @@ export default async function ReportDetailPage({
                 marginBottom: "16px",
               }}
             />
-          )}
+          ) : null}
 
           {/* Details table */}
           <div className="gov-card" style={{ marginBottom: "16px" }}>
@@ -125,6 +163,75 @@ export default async function ReportDetailPage({
                         <span className={trust >= 0.75 ? "gov-badge gov-badge--success" : "gov-badge gov-badge--danger"}>
                           {(trust * 100).toFixed(0)}%
                         </span>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* AI Analysis section */}
+          <div className="gov-card" style={{ marginBottom: "16px" }}>
+            <div className="gov-card__header">AI Analysis</div>
+            <div className="gov-card__body" style={{ padding: 0 }}>
+              <table className="gov-table" style={{ border: "none" }}>
+                <tbody>
+                  <tr>
+                    <td style={{ fontWeight: 600, width: "200px" }}>AI Analysis Status</td>
+                    <td>
+                      <span className={
+                        report.ai_analysis_status === "completed"
+                          ? "gov-badge gov-badge--success"
+                          : report.ai_analysis_status === "failed"
+                            ? "gov-badge gov-badge--danger"
+                            : "gov-badge gov-badge--saffron"
+                      }>
+                        {report.ai_analysis_status ?? "N/A"}
+                      </span>
+                    </td>
+                  </tr>
+                  {confidence !== null && confidence > 0 && (
+                    <tr>
+                      <td style={{ fontWeight: 600 }}>AI Confidence</td>
+                      <td>
+                        <span className={
+                          confidence >= 0.75
+                            ? "gov-badge gov-badge--success"
+                            : confidence >= 0.5
+                              ? "gov-badge gov-badge--saffron"
+                              : "gov-badge gov-badge--danger"
+                        }>
+                          {(confidence * 100).toFixed(0)}%
+                        </span>
+                      </td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td style={{ fontWeight: 600 }}>Spam Flag</td>
+                    <td>
+                      {report.spam_flag ? (
+                        <span className="gov-badge gov-badge--danger">⚠ Flagged</span>
+                      ) : (
+                        <span className="gov-badge gov-badge--success">Clean</span>
+                      )}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontWeight: 600 }}>Duplicate Flag</td>
+                    <td>
+                      {report.duplicate_flag ? (
+                        <span className="gov-badge gov-badge--saffron">Possible Duplicate</span>
+                      ) : (
+                        <span className="gov-badge gov-badge--success">Unique</span>
+                      )}
+                    </td>
+                  </tr>
+                  {report.ai_reason && (
+                    <tr>
+                      <td style={{ fontWeight: 600 }}>AI Reason</td>
+                      <td style={{ fontSize: "0.857rem", color: "var(--text-muted)" }}>
+                        {report.ai_reason}
                       </td>
                     </tr>
                   )}
