@@ -1,0 +1,86 @@
+flowchart TD
+    Start([Citizen opens web app]) --> Auth{Logged in?}
+    Auth -- No --> OTP[Phone OTP login<br/>+ language selection]
+    OTP --> Home
+    Auth -- Yes --> Home[Home: nearby issues map<br/>+ ranked public feed]
+
+    Home --> Choice{What next?}
+    Choice -- Browse --> Feed[View issue detail]
+    Feed --> Upvote[Upvote<br/>weighted by civic tier]
+    Upvote --> Home
+    Choice -- Report --> Cam[In-app camera opens]
+
+    Cam --> Capture[Shutter: image + device GPS<br/>+ client timestamp captured]
+    Capture --> Upload[POST to /api/v1/reports/draft<br/>server stamps received_at]
+    Upload --> Pipeline[[3-LAYER PIPELINE<br/>see flow-antispam]]
+
+    Pipeline --> Verdict{Pipeline verdict}
+
+    Verdict -- Rejected: no issue detected --> Warn[Warn citizen:<br/>retake or submit for manual review]
+    Warn --> Cam
+    Warn --> Draft
+
+    Verdict -- Duplicate candidates found --> DupUI[Show similar reports nearby:<br/>thumbnail, distance, age, upvotes]
+    DupUI --> DupChoice{Citizen decides}
+    DupChoice -- Same issue --> Merge[Merge as upvote<br/>+ corroborating photo<br/>+10 civic points]
+    Merge --> Track
+    DupChoice -- Mine is different --> Draft
+
+    Verdict -- Clean --> Draft[Draft screen:<br/>auto category + department chip<br/>optional description / voice note]
+    Draft --> Confirm{Citizen confirms<br/>category?}
+    Confirm -- No --> Picker[Manual category picker]
+    Picker --> Submit
+    Confirm -- Yes --> Submit[Submit report]
+
+    Submit --> Route[Auto-route:<br/>category + ward polygon<br/>-> department + SLA]
+    Route --> Rank[Compute priority score:<br/>severity + log upvotes<br/>+ age + POI context]
+    Rank --> Queue[(Department queue)]
+
+    Queue --> DeptAdmin[Departmental panel:<br/>ranked queue view]
+    DeptAdmin --> Triage{Legitimate?}
+    Triage -- Fake / spam --> Reject[Mark rejected<br/>-40 civic points to reporter]
+    Reject --> Notify1[Notify citizen with reason]
+
+    Triage -- Valid --> Assign[Assign to field staff<br/>SLA clock starts]
+    Assign --> Before[Field staff: BEFORE photo<br/>geofenced within 50 m]
+    Before --> Work[Status: IN PROGRESS<br/>citizen notified]
+    Work --> After[Field staff: AFTER photo<br/>geofenced, must postdate BEFORE]
+    After --> Gate{Proof gate:<br/>both photos valid?}
+    Gate -- No --> Assign
+    Gate -- Yes --> Close[Dept admin submits closure]
+
+    Close --> Pending[Status: PENDING VERIFICATION<br/>7-day window]
+    Pending --> Track[Citizen sees before/after<br/>side by side]
+    Track --> Vote{Citizen verdict}
+
+    Vote -- Confirm + rating --> Resolved[Status: RESOLVED<br/>+50 civic points<br/>dept score credited]
+    Vote -- Reopen + photo --> Reopen[Status: REOPENED<br/>reopen_count++<br/>dept score penalised]
+    Vote -- No response in 7 days --> AutoClose[Auto-RESOLVED<br/>low confidence weight]
+
+    Reopen --> Assign
+    Resolved --> Ledger[Civic score ledger<br/>+ tier update]
+    AutoClose --> Ledger
+    Ledger --> Benefits[Benefits surface:<br/>eligible scheme recommendations]
+
+    Queue -.nightly job.-> Watch{{Escalation watcher}}
+    Reopen -.-> Watch
+    Watch -- open > 30 days, no action --> Esc[(Escalation queue)]
+    Watch -- reopened >= 2 times --> Esc
+    Watch -- dept SLA breach rate high --> Esc
+    Esc --> SuperAdmin[Admin panel:<br/>generate ministry dossier<br/>PDF + email]
+
+    Resolved -.monthly.-> Score[Department scorecard:<br/>SLA 40% + satisfaction 25%<br/>+ 1-reopen rate 20% + proof 15%<br/>normalised by volume/category]
+    Reopen -.-> Score
+    Score --> SuperAdmin
+
+    classDef citizen fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
+    classDef dept fill:#d1fae5,stroke:#10b981,color:#064e3b
+    classDef admin fill:#ede9fe,stroke:#8b5cf6,color:#3b0764
+    classDef danger fill:#fee2e2,stroke:#ef4444,color:#7f1d1d
+    classDef ml fill:#fef3c7,stroke:#f59e0b,color:#78350f
+
+    class Home,Feed,Upvote,Cam,Capture,Draft,Picker,Submit,Track,OTP,Merge,DupUI citizen
+    class DeptAdmin,Assign,Before,Work,After,Close,Queue dept
+    class SuperAdmin,Esc,Score,Watch admin
+    class Reject,Warn,Reopen danger
+    class Pipeline,Route,Rank ml

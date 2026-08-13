@@ -1,0 +1,86 @@
+flowchart TD
+    In([Image + GPS + timestamps received]) --> Hash[Compute SHA-256 of raw bytes]
+    Hash --> Exact{Exact byte match<br/>in DB?}
+    Exact -- Yes --> HardDup[HARD DUPLICATE<br/>same file re-uploaded]
+    HardDup --> ShowDup
+
+    Exact -- No --> L1
+
+    subgraph L1G [LAYER 1 - Issue Legitimacy]
+        L1[YOLOv8n detector<br/>pothole / garbage / waterlogging]
+        L1 --> L1b{Detection<br/>confidence}
+        L1b -- "< 0.40" --> Fallback[CLIP zero-shot<br/>long-tail categories]
+        Fallback --> L1c{Still low?}
+        L1c -- Yes --> Suspect[FLAG: no issue detected<br/>warn citizen, allow submit]
+        L1c -- No --> Mid
+        L1b -- "0.40 - 0.75" --> Mid[FLAG: manual review lane]
+        L1b -- "> 0.75" --> Clean1[Auto-accept category]
+        NSFW[NSFW / irrelevant filter<br/>selfies, memes, screenshots]
+    end
+
+    L1 -.parallel.-> NSFW
+    NSFW --> NSFWq{Irrelevant?}
+    NSFWq -- Yes --> Block[Reject: not a civic issue]
+
+    Suspect --> L2
+    Mid --> L2
+    Clean1 --> L2
+
+    subgraph L2G [LAYER 2 - Perceptual Hash + Geo Cluster]
+        L2[Compute pHash<br/>64-bit DCT]
+        L2 --> Cand[PostGIS ST_DWithin candidate set:<br/>30 m point / 60 m linear<br/>same category, last 90 days]
+        Cand --> Ham{Hamming distance<br/>on 64-bit pHash}
+        Ham -- "<= 6" --> Near[NEAR-CERTAIN duplicate]
+        Ham -- "7 - 12" --> Likely[LIKELY duplicate]
+        Ham -- "> 12" --> Embed[CLIP embedding<br/>cosine similarity]
+        Embed --> Cos{Cosine >= 0.85<br/>within radius?}
+        Cos -- Yes --> SameScene[SAME SCENE<br/>different angle/time<br/>-- the case pHash misses]
+        Cos -- No --> NoDup[No duplicate signal]
+    end
+
+    Near --> L3
+    Likely --> L3
+    SameScene --> L3
+    NoDup --> L3
+
+    subgraph L3G [LAYER 3 - Capture Attestation]
+        L3[Evaluate capture trust]
+        L3 --> Path{Capture path}
+        Path -- In-app camera --> Trust[Score from:<br/>clock skew, GPS accuracy radius,<br/>plausible movement since last request,<br/>device attestation on RN]
+        Path -- Gallery upload --> Exif[Read EXIF opportunistically]
+        Exif --> ExifQ{EXIF present?}
+        ExifQ -- Yes --> Bonus[Bonus signal<br/>but forgeable - low weight]
+        ExifQ -- No --> LowTrust[LOW_TRUST_CAPTURE<br/>always manual review<br/>reduced civic score]
+        Trust --> Collude
+        Bonus --> Collude
+        LowTrust --> Collude
+        Collude{Cross-report match:<br/>same pHash + coords to 5dp<br/>+ capture time within 60 s<br/>by a different user?}
+        Collude -- Yes --> Ring[FLAG: collusion / spam ring<br/>both reports to admin review]
+        Collude -- No --> Pass[Capture trust recorded]
+    end
+
+    Ring --> Decide
+    Pass --> Decide
+
+    Decide{Combined verdict}
+    Decide -- Any duplicate signal --> ShowDup[Show candidate reports to citizen:<br/>thumbnail, distance, age, upvotes]
+    ShowDup --> UserSays{Citizen decides}
+    UserSays -- Same issue --> MergeOut([Merge as upvote + photo<br/>+10 civic points])
+    UserSays -- Different --> FlagOut([New report, tagged<br/>POSSIBLE_DUPLICATE for dept])
+
+    Decide -- Clean, high trust --> CleanOut([Straight to department queue])
+    Decide -- Clean, low trust or flagged --> ReviewOut([Department manual review lane])
+
+    Block --> Rejected([Rejected at submission])
+
+    classDef layer1 fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef layer2 fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
+    classDef layer3 fill:#d1fae5,stroke:#10b981,color:#064e3b
+    classDef bad fill:#fee2e2,stroke:#ef4444,color:#7f1d1d
+    classDef good fill:#e0e7ff,stroke:#6366f1,color:#312e81
+
+    class L1,L1b,L1c,Fallback,Mid,Clean1,Suspect,NSFW,NSFWq layer1
+    class L2,Cand,Ham,Near,Likely,Embed,Cos,SameScene,NoDup layer2
+    class L3,Path,Trust,Exif,ExifQ,Bonus,LowTrust,Collude,Pass layer3
+    class Block,Rejected,Ring,HardDup bad
+    class CleanOut,MergeOut,FlagOut,ReviewOut good

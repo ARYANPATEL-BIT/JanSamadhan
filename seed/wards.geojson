@@ -1,0 +1,30 @@
+{
+  "type": "FeatureCollection",
+  "note": "Hand-drawn demo ward polygons for Ranchi Municipal Corporation (Jharkhand). Canonical seed is seed/seed.sql; this file is a human-readable/GIS-inspectable mirror. Replace with real OSM boundary export per city in production.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "municipality": "Ranchi Municipal Corporation", "ward_no": 1 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[85.30, 23.34], [85.32, 23.34], [85.32, 23.36], [85.30, 23.36], [85.30, 23.34]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "municipality": "Ranchi Municipal Corporation", "ward_no": 2 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[85.32, 23.34], [85.34, 23.34], [85.34, 23.36], [85.32, 23.36], [85.32, 23.34]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "municipality": "Ranchi Municipal Corporation", "ward_no": 3 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[85.30, 23.32], [85.34, 23.32], [85.34, 23.34], [85.30, 23.34], [85.30, 23.32]]]
+      }
+    }
+  ]
+}
