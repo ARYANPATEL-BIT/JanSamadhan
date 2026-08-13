@@ -1,6 +1,15 @@
-import { sql, eq, and, desc } from "drizzle-orm";
+import { sql, eq, and } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { reportMedia, reports, statusEvents, upvotes } from "@/lib/db/schema";
+import { reportMedia, reports, statusEvents, upvotes, users } from "@/lib/db/schema";
+
+/**
+ * Civic points awarded when a citizen submits an issue that hasn't been
+ * reported before (i.e. the pipeline found no duplicate). Product decision:
+ * score is a plain running total, credited at submission of a NOVEL report.
+ * (Note: this trades away the PRD's spam-economics guard, which only credited
+ * verified/resolved reports — see CLAUDE.md.)
+ */
+export const CIVIC_POINTS_PER_NEW_REPORT = 10;
 import { resolveDepartment } from "@/lib/geo/ward-lookup";
 import type { DraftTicket } from "@/lib/reports/draft-ticket";
 import type { Category } from "@/lib/pipeline/types";
@@ -65,6 +74,17 @@ export async function createReportFromTicket(args: CreateReportArgs): Promise<{ 
       actorId: reporterId,
       note: "Report submitted",
     });
+
+    // Award civic points only for a novel report (no duplicate found). In
+    // sprint 1 the stub never reports duplicates, so every submission is novel;
+    // the gate is already wired for sprint-2 duplicate detection.
+    const isNovel = ticket.combined !== "DUPLICATE_CANDIDATES";
+    if (isNovel) {
+      await tx
+        .update(users)
+        .set({ civicScore: sql`${users.civicScore} + ${CIVIC_POINTS_PER_NEW_REPORT}` })
+        .where(eq(users.id, reporterId));
+    }
 
     return { id: reportId };
   });

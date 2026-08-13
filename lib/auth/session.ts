@@ -18,7 +18,6 @@ export interface SessionUser {
   phone: string;
   name: string | null;
   civicScore: number;
-  tier: string;
   lang: string;
 }
 
@@ -87,7 +86,6 @@ function toSessionUser(u: typeof users.$inferSelect): SessionUser {
     phone: u.phone,
     name: u.name,
     civicScore: u.civicScore,
-    tier: u.tier,
     lang: u.lang,
   };
 }

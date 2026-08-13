@@ -24,8 +24,8 @@ export function NavAuth({ user }: { user: SessionUser | null }) {
 
   return (
     <div className="flex items-center gap-2">
-      <Badge variant="secondary" title={`Tier: ${user.tier}`}>
-        {user.tier} · {user.civicScore}
+      <Badge variant="secondary" title="Your civic score">
+        ⭐ {user.civicScore}
       </Badge>
       <span className="hidden text-muted-foreground sm:inline">{user.phone}</span>
       <button onClick={logout} className="rounded-md px-3 py-1.5 hover:bg-muted">
