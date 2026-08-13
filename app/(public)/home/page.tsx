@@ -3,8 +3,8 @@ import { Breadcrumbs } from "@/components/gov/breadcrumbs";
 import { SidebarNav } from "@/components/gov/sidebar-nav";
 import { AnnouncementStrip } from "@/components/gov/announcement-strip";
 import { db } from "@/lib/db/client";
-import { reports } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { escalations, reports } from "@/lib/db/schema";
+import { isNull, sql } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -19,16 +19,23 @@ export default async function HomePage() {
     const [stats] = await db
       .select({
         total: sql<number>`count(*)`,
-        resolved: sql<number>`count(*) filter (where ${reports.status} = 'resolved')`,
-        pending: sql<number>`count(*) filter (where ${reports.status} = 'submitted' or ${reports.status} = 'in_progress')`,
-        escalated: sql<number>`count(*) filter (where ${reports.status} = 'escalated')`,
+        resolved: sql<number>`count(*) filter (where ${reports.status} = 'RESOLVED')`,
+        pending: sql<number>`count(*) filter (where ${reports.status} in (
+          'SUBMITTED', 'ASSIGNED', 'IN_PROGRESS',
+          'PENDING_CITIZEN_VERIFICATION', 'REOPENED'
+        ))`,
       })
       .from(reports);
+
+    const [esc] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(escalations)
+      .where(isNull(escalations.resolvedAt));
 
     totalReports = Number(stats.total);
     resolvedCount = Number(stats.resolved);
     pendingCount = Number(stats.pending);
-    escalatedCount = Number(stats.escalated);
+    escalatedCount = Number(esc.n);
   } catch {
     // DB not available — show zeros
   }
