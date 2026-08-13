@@ -5,9 +5,10 @@ export default defineConfig({
   out: "./lib/db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? "postgres://civic:civic@localhost:5432/civic",
+    // Hosted Neon Postgres; connection string lives in .env.local.
+    url: process.env.DATABASE_URL ?? "",
   },
-  // PostGIS/pgvector extensions are created by docker/db-init, not by drizzle.
+  // PostGIS/pgvector are pre-provisioned on Neon, not managed by drizzle.
   extensionsFilters: ["postgis"],
   verbose: true,
   strict: true,

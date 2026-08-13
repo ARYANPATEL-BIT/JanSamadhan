@@ -1,70 +1,62 @@
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-  HeadBucketCommand,
-  CreateBucketCommand,
-} from "@aws-sdk/client-s3";
+import { v2 as cloudinary } from "cloudinary";
 
-const bucket = process.env.S3_BUCKET ?? "civic-media";
-
-const client = new S3Client({
-  endpoint: process.env.S3_ENDPOINT ?? "http://localhost:9000",
-  region: process.env.S3_REGION ?? "us-east-1",
-  forcePathStyle: true, // required for MinIO
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY ?? "minio",
-    secretAccessKey: process.env.S3_SECRET_KEY ?? "minio12345",
-  },
+// Configure from env — expects CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
 });
 
-let ensured = false;
-
-/** Create the bucket on first use. Objects are served via the app's /media
- *  proxy (getObject), so MinIO itself stays private — no public-read policy. */
-async function ensureBucket(): Promise<void> {
-  if (ensured) return;
-  try {
-    await client.send(new HeadBucketCommand({ Bucket: bucket }));
-  } catch {
-    await client.send(new CreateBucketCommand({ Bucket: bucket }));
-  }
-  ensured = true;
-}
-
 /**
- * Upload bytes and return an ORIGIN-RELATIVE URL (`/media/<key>`) served by the
- * app's media proxy. Relative on purpose: the same stored URL then works over
- * localhost, a LAN IP, or a Cloudflare tunnel with zero reconfiguration, and
- * MinIO never has to be exposed to other devices.
+ * Upload bytes to Cloudinary. Returns the public HTTPS URL directly
+ * (no media proxy needed — Cloudinary serves images via CDN).
  */
 export async function putObject(
   key: string,
   bytes: Uint8Array,
   contentType: string,
 ): Promise<string> {
-  await ensureBucket();
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: bytes,
-      ContentType: contentType,
-    }),
-  );
-  return `/media/${key}`;
+  // Convert bytes to base64 data URI for Cloudinary upload
+  const mime = contentType || "image/jpeg";
+  const b64 = Buffer.from(bytes).toString("base64");
+  const dataUri = `data:${mime};base64,${b64}`;
+
+  // Use the SHA-based key as the public_id (strip extension)
+  const publicId = key.replace(/\.[^.]+$/, "");
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    public_id: publicId,
+    folder: "civic-media",
+    resource_type: "image",
+    overwrite: false, // SHA-keyed, so same file = same key = skip re-upload
+  });
+
+  // Return the full Cloudinary CDN URL — no proxy needed
+  return result.secure_url;
 }
 
-/** Stream an object back for the /media proxy route. Returns null if missing. */
+/**
+ * Get an object from Cloudinary. Used by the media proxy route as a fallback,
+ * but with Cloudinary the URLs are direct CDN links so this is rarely called.
+ */
 export async function getObject(
   key: string,
 ): Promise<{ stream: ReadableStream; contentType: string } | null> {
   try {
-    const res = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-    if (!res.Body) return null;
+    // Build the Cloudinary URL for this key
+    const publicId = `civic-media/${key.replace(/\.[^.]+$/, "")}`;
+    const url = cloudinary.url(publicId, {
+      secure: true,
+      resource_type: "image",
+    });
+
+    const res = await fetch(url);
+    if (!res.ok || !res.body) return null;
+
     return {
-      stream: res.Body.transformToWebStream(),
-      contentType: res.ContentType ?? "application/octet-stream",
+      stream: res.body,
+      contentType: res.headers.get("content-type") ?? "image/jpeg",
     };
   } catch {
     return null;

@@ -3,10 +3,10 @@ import { getObject } from "@/lib/storage/s3";
 export const runtime = "nodejs";
 
 /**
- * Same-origin media proxy. Streams objects out of MinIO so uploaded photos load
- * from the app's own origin (`/media/reports/<sha>.jpg`) — which means they work
- * unchanged over localhost, a LAN IP, or a Cloudflare tunnel, and MinIO is never
- * exposed to the internet. Content is immutable (keyed by SHA-256), so cache hard.
+ * Same-origin media proxy fallback. Cloudinary uploads now return a direct CDN
+ * `secure_url`, so this route is rarely hit — it remains as a same-origin
+ * fallback that streams an object by key (`/media/reports/<sha>.jpg`). Content
+ * is immutable (keyed by SHA-256), so cache hard.
  */
 export async function GET(
   _req: Request,
