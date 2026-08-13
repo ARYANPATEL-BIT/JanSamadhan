@@ -19,9 +19,9 @@ export default async function HomePage() {
     const [stats] = await db
       .select({
         total: sql<number>`count(*)`,
-        resolved: sql<number>`count(*) filter (where ${reports.status} = 'resolved')`,
-        pending: sql<number>`count(*) filter (where ${reports.status} = 'submitted' or ${reports.status} = 'in_progress')`,
-        escalated: sql<number>`count(*) filter (where ${reports.status} = 'escalated')`,
+        resolved: sql<number>`count(*) filter (where ${reports.status} = 'RESOLVED')`,
+        pending: sql<number>`count(*) filter (where ${reports.status} IN ('SUBMITTED', 'ASSIGNED', 'IN_PROGRESS'))`,
+        escalated: sql<number>`count(*) filter (where ${reports.status} = 'REOPENED')`,
       })
       .from(reports);
 
