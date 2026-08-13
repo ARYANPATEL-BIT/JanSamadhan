@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { listFeed } from "@/lib/services/reports";
 import { FeedView } from "@/components/feed-view";
@@ -7,6 +8,8 @@ import { SidebarNav } from "@/components/gov/sidebar-nav";
 export const dynamic = "force-dynamic";
 
 export default async function FeedPage() {
+  const t = await getTranslations("feed");
+  const tn = await getTranslations("nav");
   const user = await getCurrentUser();
   const items = await listFeed(user?.id ?? null);
 
@@ -14,17 +17,17 @@ export default async function FeedPage() {
     <>
       <Breadcrumbs
         items={[
-          { label: "Home", href: "/" },
-          { label: "Public Grievance Reports" },
+          { label: tn("home"), href: "/" },
+          { label: t("breadcrumb") },
         ]}
       />
       <div className="gov-container gov-interior">
         <SidebarNav />
         <div className="gov-interior__main">
-          <h1 style={{ marginBottom: "12px" }}>Public Grievance Reports</h1>
+          <h1 style={{ marginBottom: "12px" }}>{t("title")}</h1>
           {items.length === 0 ? (
             <div className="gov-notice gov-notice--info">
-              No grievance reports have been registered yet. Be the first citizen to report a civic issue.
+              {t("empty")}
             </div>
           ) : (
             <FeedView items={items} authed={!!user} />

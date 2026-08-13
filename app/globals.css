@@ -162,7 +162,7 @@ html.high-contrast img {
   html {
     font-size: calc(14px * var(--gov-font-scale, 1));
     line-height: 1.5;
-    font-family: var(--font-noto-sans), 'Noto Sans', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-noto-sans), var(--font-noto-sans-devanagari), var(--font-noto-sans-bengali), var(--font-noto-sans-tamil), var(--font-noto-sans-telugu), 'Noto Sans', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
     scroll-behavior: smooth;
   }
 

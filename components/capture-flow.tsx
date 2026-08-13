@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { CATEGORY_META } from "@/lib/categories";
@@ -38,6 +39,8 @@ function getPosition(): Promise<GeolocationPosition> {
 }
 
 export function CaptureFlow({ categories }: { categories: readonly string[] }) {
+  const t = useTranslations("capture");
+  const tc = useTranslations("categories");
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -68,9 +71,7 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
         await videoRef.current.play().catch(() => {});
       }
     } catch {
-      setCameraError(
-        "Camera unavailable or permission denied. Please allow camera access and reload — reporting requires an in-app photo.",
-      );
+      setCameraError(t("cameraError"));
     }
   }, []);
 
@@ -85,7 +86,7 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
     try {
       // Bind device geolocation + client timestamp at the moment of capture.
       const pos = await getPosition().catch(() => {
-        throw new Error("Location permission is required to file a report.");
+        throw new Error(t("toastLocationRequired"));
       });
       const capturedAt = Date.now();
 
@@ -120,7 +121,7 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || !video.videoWidth) {
-      toast.error("Camera not ready yet.");
+      toast.error(t("cameraNotReady"));
       return;
     }
     canvas.width = video.videoWidth;
@@ -150,7 +151,7 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "submit_failed");
-      toast.success("Report submitted");
+      toast.success(t("toastSubmitted"));
       router.push(`/report/${data.id}`);
     } catch (e) {
       toast.error((e as Error).message);
@@ -178,19 +179,19 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
         )}
 
         <div className="gov-card">
-          <div className="gov-card__header">Review & Submit Complaint</div>
+          <div className="gov-card__header">{t("reviewTitle")}</div>
           <div className="gov-card__body" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {/* Category suggestion */}
             <div>
               <div style={{ fontSize: "0.857rem", color: "var(--text-muted)", marginBottom: "6px" }}>
-                Detected category:{" "}
+                {t("detectedCategory")}{" "}
                 <strong style={{ color: "var(--text)" }}>
-                  {CATEGORY_META[s.category].label}
+                  {tc(s.category)}
                 </strong>
                 {s.ward
-                  ? ` → Ward ${s.ward.wardNo}, ${s.ward.municipalityName}`
-                  : " → outside seeded wards (no auto-routing)"}
-                . Not correct? Select below:
+                  ? t("wardRoute", { ward: s.ward.wardNo, municipality: s.ward.municipalityName })
+                  : t("outsideWards")}
+                {t("notCorrect")}
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {categories.map((c) => (
@@ -205,7 +206,7 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
                     }
                     style={{ minHeight: "36px" }}
                   >
-                    {CATEGORY_META[c as Category].label}
+                    {tc(c)}
                   </button>
                 ))}
               </div>
@@ -214,23 +215,23 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
             {/* Trust & verdict badges */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
               <span className={trust >= 0.75 ? "gov-badge gov-badge--success" : "gov-badge gov-badge--danger"}>
-                Capture Trust: {(trust * 100).toFixed(0)}%
+                {t("captureTrust", { pct: (trust * 100).toFixed(0) })}
               </span>
               {draft!.verdict.combined === "MANUAL_REVIEW" && (
-                <span className="gov-badge gov-badge--saffron">Routed to Manual Review</span>
+                <span className="gov-badge gov-badge--saffron">{t("routedManual")}</span>
               )}
               {draft!.verdict.combined === "CLEAN_HIGH_TRUST" && (
-                <span className="gov-badge gov-badge--success">Verified · Auto-Routed</span>
+                <span className="gov-badge gov-badge--success">{t("verifiedAutoRouted")}</span>
               )}
             </div>
 
             {/* Description */}
             <div>
               <label style={{ display: "block", fontWeight: 600, fontSize: "0.857rem", marginBottom: "4px" }}>
-                Description (optional, max 200 characters)
+                {t("descriptionLabel")}
               </label>
               <Textarea
-                placeholder="Add a short description of the issue"
+                placeholder={t("descriptionPlaceholder")}
                 maxLength={200}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -246,7 +247,7 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
                 onClick={submitReport}
                 disabled={phase === "submitting"}
               >
-                {phase === "submitting" ? "Submitting…" : "Submit Complaint"}
+                {phase === "submitting" ? t("submitting") : t("submitComplaint")}
               </button>
               <button
                 className="gov-btn gov-btn--secondary gov-btn--lg"
@@ -257,7 +258,7 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
                 }}
                 disabled={phase === "submitting"}
               >
-                Retake
+                {t("retake")}
               </button>
             </div>
           </div>
@@ -287,7 +288,7 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
             color: "#fff",
             fontSize: "1rem",
           }}>
-            Analyzing photograph… (verification in progress)
+            {t("analyzing")}
           </div>
         )}
       </div>
@@ -303,11 +304,10 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
         disabled={phase === "analyzing" || !!cameraError}
         style={{ fontSize: "1.1rem", minHeight: "52px" }}
       >
-        {phase === "analyzing" ? "Analyzing…" : "📸 Capture Photograph"}
+        {phase === "analyzing" ? t("analyzingShort") : `📸 ${t("capturePhoto")}`}
       </button>
       <div className="gov-notice gov-notice--info" style={{ margin: 0 }}>
-        In-app camera only. This binds your live GPS location and timestamp to
-        the photograph at the moment of capture.
+        {t("captureNotice")}
       </div>
     </div>
   );

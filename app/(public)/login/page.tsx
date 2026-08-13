@@ -2,19 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-
-const LANGS = [
-  { code: "en", label: "English" },
-  { code: "hi", label: "हिन्दी" },
-  { code: "bn", label: "বাংলা" },
-  { code: "mr", label: "मराठी" },
-  { code: "ta", label: "தமிழ்" },
-  { code: "te", label: "తెలుగు" },
-];
+import { locales, localeNames } from "@/i18n/config";
 
 export default function LoginPage() {
+  const t = useTranslations("login");
   const router = useRouter();
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
@@ -34,13 +28,13 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.error ?? "failed");
       setStep("code");
       if (data.devCode) {
-        toast.success(`Dev OTP: ${data.devCode}`, { duration: 10000 });
+        toast.success(t("toastDevOtp", { code: data.devCode }), { duration: 10000 });
         setCode(data.devCode);
       } else {
-        toast.success("OTP sent");
+        toast.success(t("toastOtpSent"));
       }
     } catch (e) {
-      toast.error(`Could not send OTP (${(e as Error).message})`);
+      toast.error(t("toastOtpFail", { message: (e as Error).message }));
     } finally {
       setBusy(false);
     }
@@ -56,11 +50,11 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "failed");
-      toast.success("Logged in");
+      toast.success(t("toastLoggedIn"));
       router.refresh();
       router.push("/report/new");
     } catch (e) {
-      toast.error(`Verification failed (${(e as Error).message})`);
+      toast.error(t("toastVerifyFail", { message: (e as Error).message }));
     } finally {
       setBusy(false);
     }
@@ -70,44 +64,44 @@ export default function LoginPage() {
     <div style={{ maxWidth: "480px", margin: "0 auto", padding: "20px 0" }}>
       <div className="gov-card">
         <div className="gov-card__header">
-          {step === "phone" ? "Citizen Login — OTP Verification" : "Enter One-Time Password"}
+          {step === "phone" ? t("titlePhone") : t("titleCode")}
         </div>
         <div className="gov-card__body" style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           {step === "phone" ? (
             <>
               <div className="gov-form-row">
                 <label className="gov-form-row__label" htmlFor="phone">
-                  Mobile Number
+                  {t("mobileNumber")}
                 </label>
                 <div className="gov-form-row__field">
                   <Input
                     id="phone"
                     inputMode="numeric"
-                    placeholder="Enter 10-digit mobile number"
+                    placeholder={t("mobilePlaceholder")}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     style={{ borderRadius: 0 }}
                   />
                   <div className="gov-form-row__hint">
-                    An OTP will be sent to this mobile number for verification
+                    {t("mobileHint")}
                   </div>
                 </div>
               </div>
 
               <div className="gov-form-row">
                 <label className="gov-form-row__label">
-                  Language
+                  {t("language")}
                 </label>
                 <div className="gov-form-row__field">
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                    {LANGS.map((l) => (
+                    {locales.map((code) => (
                       <button
-                        key={l.code}
+                        key={code}
                         type="button"
-                        onClick={() => setLang(l.code)}
-                        className={l.code === lang ? "gov-btn gov-btn--primary gov-btn--sm" : "gov-btn gov-btn--secondary gov-btn--sm"}
+                        onClick={() => setLang(code)}
+                        className={code === lang ? "gov-btn gov-btn--primary gov-btn--sm" : "gov-btn gov-btn--secondary gov-btn--sm"}
                       >
-                        {l.label}
+                        {localeNames[code]}
                       </button>
                     ))}
                   </div>
@@ -120,7 +114,7 @@ export default function LoginPage() {
                   onClick={requestCode}
                   disabled={busy || phone.replace(/\D/g, "").length < 10}
                 >
-                  {busy ? "Sending…" : "Send OTP"}
+                  {busy ? t("sending") : t("sendOtp")}
                 </button>
               </div>
             </>
@@ -128,20 +122,20 @@ export default function LoginPage() {
             <>
               <div className="gov-form-row">
                 <label className="gov-form-row__label" htmlFor="code">
-                  OTP Code
+                  {t("otpCode")}
                 </label>
                 <div className="gov-form-row__field">
                   <Input
                     id="code"
                     inputMode="numeric"
                     maxLength={6}
-                    placeholder="Enter 6-digit OTP"
+                    placeholder={t("otpPlaceholder")}
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     style={{ borderRadius: 0 }}
                   />
                   <div className="gov-form-row__hint">
-                    6-digit code sent to {phone}. In dev mode, the code is logged to the server console.
+                    {t("otpHint", { phone })}
                   </div>
                 </div>
               </div>
@@ -159,14 +153,14 @@ export default function LoginPage() {
                     fontSize: "0.857rem",
                   }}
                 >
-                  ← Change Number
+                  ← {t("changeNumber")}
                 </button>
                 <button
                   className="gov-btn gov-btn--primary"
                   onClick={verify}
                   disabled={busy || code.length !== 6}
                 >
-                  {busy ? "Verifying…" : "Verify & Continue"}
+                  {busy ? t("verifying") : t("verifyContinue")}
                 </button>
               </div>
             </>

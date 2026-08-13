@@ -1,11 +1,14 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
-export function GovFooter() {
+export async function GovFooter() {
+  const t = await getTranslations("footer");
   const currentDate = new Date().toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
+  const visitors = (1248673).toLocaleString("en-IN");
 
   return (
     <footer className="gov-footer" role="contentinfo">
@@ -13,49 +16,49 @@ export function GovFooter() {
         <div className="gov-footer__columns">
           {/* Column 1: Quick Links */}
           <div>
-            <div className="gov-footer__col-title">Quick Links</div>
+            <div className="gov-footer__col-title">{t("quickLinks")}</div>
             <ul className="gov-footer__col-list">
-              <li><Link href="/">Home</Link></li>
-              <li><Link href="/report/new">Register Complaint</Link></li>
-              <li><Link href="/feed">Public Reports</Link></li>
-              <li><Link href="/track">Track Status</Link></li>
-              <li><Link href="/login">Citizen Login</Link></li>
+              <li><Link href="/">{t("home")}</Link></li>
+              <li><Link href="/report/new">{t("registerComplaint")}</Link></li>
+              <li><Link href="/feed">{t("publicReports")}</Link></li>
+              <li><Link href="/track">{t("trackStatus")}</Link></li>
+              <li><Link href="/login">{t("citizenLogin")}</Link></li>
             </ul>
           </div>
 
           {/* Column 2: Services */}
           <div>
-            <div className="gov-footer__col-title">Services</div>
+            <div className="gov-footer__col-title">{t("services")}</div>
             <ul className="gov-footer__col-list">
-              <li><Link href="/report/new">Grievance Registration</Link></li>
-              <li><Link href="/departments">Department Directory</Link></li>
-              <li><Link href="/civic-score">Civic Score</Link></li>
-              <li><Link href="/feed">Report Feed</Link></li>
-              <li><Link href="/about">RTI Information</Link></li>
+              <li><Link href="/report/new">{t("grievanceRegistration")}</Link></li>
+              <li><Link href="/departments">{t("departmentDirectory")}</Link></li>
+              <li><Link href="/civic-score">{t("civicScore")}</Link></li>
+              <li><Link href="/feed">{t("reportFeed")}</Link></li>
+              <li><Link href="/about">{t("rtiInformation")}</Link></li>
             </ul>
           </div>
 
           {/* Column 3: Policies */}
           <div>
-            <div className="gov-footer__col-title">Policies</div>
+            <div className="gov-footer__col-title">{t("policies")}</div>
             <ul className="gov-footer__col-list">
-              <li><Link href="/terms">Terms &amp; Conditions</Link></li>
-              <li><Link href="/privacy">Privacy Policy</Link></li>
-              <li><Link href="/copyright">Copyright Policy</Link></li>
-              <li><Link href="/hyperlinking">Hyperlinking Policy</Link></li>
-              <li><Link href="/accessibility">Accessibility Statement</Link></li>
+              <li><Link href="/terms">{t("terms")}</Link></li>
+              <li><Link href="/privacy">{t("privacy")}</Link></li>
+              <li><Link href="/copyright">{t("copyright")}</Link></li>
+              <li><Link href="/hyperlinking">{t("hyperlinking")}</Link></li>
+              <li><Link href="/accessibility">{t("accessibility")}</Link></li>
             </ul>
           </div>
 
           {/* Column 4: Contact */}
           <div>
-            <div className="gov-footer__col-title">Contact Us</div>
+            <div className="gov-footer__col-title">{t("contactUs")}</div>
             <ul className="gov-footer__col-list">
-              <li>Nagarpratinidhi Municipal Corporation</li>
-              <li>Municipal Bhavan, Civil Lines</li>
-              <li>Nagarpratinidhi — 834001</li>
-              <li>Phone: 0651-XXXXXXX</li>
-              <li>Email: grievance@nmc.gov.in</li>
+              <li>{t("corpName")}</li>
+              <li>{t("addressLine1")}</li>
+              <li>{t("addressLine2")}</li>
+              <li>{t("phone")}</li>
+              <li>{t("email")}</li>
             </ul>
           </div>
         </div>
@@ -66,21 +69,23 @@ export function GovFooter() {
         <div className="gov-container">
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
             <span>
-              Website Content Managed by <strong>Nagarpratinidhi Municipal Corporation</strong> ·
-              Last Updated on: {currentDate} ·
-              Visitors: <span style={{ fontVariantNumeric: "tabular-nums" }}>12,48,673</span>
+              {t.rich("managedBy", { strong: (c) => <strong>{c}</strong> })}
+              {" · "}
+              {t("lastUpdated", { date: currentDate })}
+              {" · "}
+              {t("visitors", { count: visitors })}
             </span>
             <span>
-              Designed, Developed and Hosted by <strong>NMC IT Division</strong>
+              {t.rich("designedBy", { strong: (c) => <strong>{c}</strong> })}
             </span>
           </div>
           <div className="gov-footer__policies" style={{ marginTop: "6px" }}>
-            WCAG 2.1 Compliant · W3C Valid HTML ·{" "}
-            <Link href="/terms">Terms &amp; Conditions</Link>{" | "}
-            <Link href="/privacy">Privacy Policy</Link>{" | "}
-            <Link href="/copyright">Copyright Policy</Link>{" | "}
-            <Link href="/hyperlinking">Hyperlinking Policy</Link>{" | "}
-            <Link href="/accessibility">Accessibility Statement</Link>
+            {t("compliance")}{" · "}
+            <Link href="/terms">{t("terms")}</Link>{" | "}
+            <Link href="/privacy">{t("privacy")}</Link>{" | "}
+            <Link href="/copyright">{t("copyright")}</Link>{" | "}
+            <Link href="/hyperlinking">{t("hyperlinking")}</Link>{" | "}
+            <Link href="/accessibility">{t("accessibility")}</Link>
           </div>
         </div>
       </div>
