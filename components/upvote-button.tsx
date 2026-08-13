@@ -26,12 +26,16 @@ export function UpvoteButton({
     setBusy(true);
     try {
       const res = await fetch(`/api/v1/reports/${reportId}/upvote`, { method: "POST" });
-      if (!res.ok) throw new Error();
-      const data = (await res.json()) as { upvoted: boolean; count: number };
-      setUpvoted(data.upvoted);
-      setCount(data.count);
-    } catch {
-      toast.error("Upvote failed.");
+      const data = (await res.json().catch(() => null)) as
+        | { upvoted?: boolean; count?: number; error?: string }
+        | null;
+      if (!res.ok) {
+        throw new Error(data?.error === "unauthorized" ? "Log in to upvote." : "Upvote failed.");
+      }
+      setUpvoted(Boolean(data?.upvoted));
+      setCount(Number(data?.count) || 0);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upvote failed.");
     } finally {
       setBusy(false);
     }

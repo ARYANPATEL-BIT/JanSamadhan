@@ -50,13 +50,23 @@ function statusClass(status: string): string {
 export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean }) {
   const [tab, setTab] = useState<"list" | "map">("list");
   const [rows, setRows] = useState(items);
+  const [pending, setPending] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRows(items);
+  }, [items]);
 
   async function upvote(id: string) {
     if (!authed) {
       toast.error("Log in to upvote.");
       return;
     }
-    // optimistic
+    if (pending) return;
+
+    const snapshot = rows.find((r) => r.id === id);
+    if (!snapshot) return;
+
+    setPending(id);
     setRows((rs) =>
       rs.map((r) =>
         r.id === id
@@ -68,18 +78,24 @@ export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean
           : r,
       ),
     );
-    const res = await fetch(`/api/v1/reports/${id}/upvote`, { method: "POST" });
-    if (!res.ok) {
+
+    try {
+      const res = await fetch(`/api/v1/reports/${id}/upvote`, { method: "POST" });
+      if (!res.ok) throw new Error("upvote_failed");
+      const data = (await res.json()) as { upvoted: boolean; count: number };
+      setRows((rs) =>
+        rs.map((r) =>
+          r.id === id
+            ? { ...r, viewerUpvoted: Boolean(data.upvoted), upvoteCount: Number(data.count) || 0 }
+            : r,
+        ),
+      );
+    } catch {
       toast.error("Upvote failed.");
-      setRows(items);
-      return;
+      setRows((rs) => rs.map((r) => (r.id === id ? snapshot : r)));
+    } finally {
+      setPending(null);
     }
-    const data = (await res.json()) as { upvoted: boolean; count: number };
-    setRows((rs) =>
-      rs.map((r) =>
-        r.id === id ? { ...r, viewerUpvoted: data.upvoted, upvoteCount: data.count } : r,
-      ),
-    );
   }
 
   return (
@@ -132,6 +148,7 @@ export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean
                 <td style={{ textAlign: "center" }}>
                   <button
                     onClick={() => upvote(r.id)}
+                    disabled={pending === r.id}
                     className={r.viewerUpvoted ? "gov-btn gov-btn--primary gov-btn--sm" : "gov-btn gov-btn--secondary gov-btn--sm"}
                     aria-pressed={r.viewerUpvoted}
                     style={{ padding: "2px 10px", minWidth: "50px" }}
