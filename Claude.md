@@ -30,9 +30,9 @@ Don't build sprint 3 features before sprint 1-2 are solid. If asked to jump ahea
 | Web framework | Next.js 15, App Router, TypeScript |
 | Styling | Tailwind + shadcn/ui |
 | API | Versioned `/api/v1` — treat this as a real API boundary even though it's currently only consumed by the Next app. The React Native app will hit these same endpoints in Phase 2. Don't leak business logic into page-level server actions that a mobile client couldn't reach. |
-| DB | Postgres + **PostGIS** extension (required — duplicate detection depends on `ST_DWithin`, don't hand-roll haversine math) + **pgvector** (for CLIP embedding similarity) |
-| Auth | Phone OTP (Supabase Auth free tier, or self-hosted equivalent) |
-| Storage | Cloudflare R2 (free tier) or MinIO locally for images |
+| DB | **Neon** (hosted Postgres, free tier) + **PostGIS** extension (required — duplicate detection depends on `ST_DWithin`, don't hand-roll haversine math) + **pgvector** (for CLIP embedding similarity). Both extensions enabled once via the Neon SQL editor. |
+| Auth | Phone OTP (self-hosted mock OTP — see sprint-1 notes) |
+| Storage | **Cloudinary** (hosted, free tier) for images, behind `lib/storage/s3.ts` (`putObject`/`getObject`) |
 | ML service | Separate FastAPI service, Python, PyTorch — YOLOv8n, CLIP ViT-B/32, pHash, Whisper-small, NLLB-600M |
 | Maps | MapLibre GL + OpenStreetMap tiles — **not** Google Maps (billing) |
 | Realtime | Postgres LISTEN/NOTIFY → SSE — **not** a paid websocket service |
@@ -86,17 +86,18 @@ Decisions made this sprint (recorded so docs don't drift):
 - **Auth: self-hosted mock OTP** (not Supabase Auth — Supabase phone OTP needs a *paid* SMS provider, which breaks the zero-budget rule). `SmsSender` interface in `lib/auth/sms.ts` (ConsoleSmsSender logs the code in dev); swap in a real provider behind it. Session = signed JWT cookie (`lib/auth/session.ts`). `otp_codes` is auth infra, intentionally outside the §8.1 domain model.
 - **ML pipeline seam:** `lib/pipeline/` — `getPipelineClient()` factory switches on `PIPELINE_MODE` (`stub` now, `http` in sprint 2). `StubPipelineClient` returns a hardcoded `CLEAN_HIGH_TRUST` verdict in the exact shape the real FastAPI service will return. SHA-256 is computed for real server-side. **To wire the real service in sprint 2: implement `lib/pipeline/http.ts` and set `PIPELINE_MODE=http` — no upstream changes.**
 - **Draft→submit** uses a signed "draft ticket" (`lib/reports/draft-ticket.ts`) carrying server-stamped `received_at`, capture facts, pipeline verdict, and resolved ward — so the citizen can only edit category/description, and no DB draft table is needed (schema stays at §8.1).
-- **DB image:** `docker/db/Dockerfile` = `postgis/postgis:16-3.4` + pgvector (postgis image doesn't ship pgvector). `docker/db-init/01-extensions.sql` enables both. **Verified working:** PostGIS 3.4.3 `ST_DWithin`, pgvector 0.8.6.
-- **Storage:** MinIO (S3-compatible), `lib/storage/s3.ts`, public-read bucket `civic-media`.
-- **Seed:** Ranchi Municipal Corporation (Jharkhand), 3 hand-drawn ward polygons, 4 departments, full category→department map — `seed/seed.sql` (+ `seed/wards.geojson` mirror).
+- **Database:** hosted **Neon** Postgres (no Docker). PostGIS + pgvector enabled once via the Neon SQL editor. **Verified working (2026-08-14):** PostGIS 3.6 `ST_DWithin` (GIST index `reports_location_gix` used, confirmed via `EXPLAIN`), pgvector 0.8.6. Connection string in `.env.local` (`DATABASE_URL`, `?sslmode=require`). ⚠️ The Neon project currently sits in **us-east-2** — steady-state query latency from India is ~240ms; a region move to Singapore is the biggest single latency win but was deliberately deferred by the product owner.
+- **Storage:** **Cloudinary** (hosted). `lib/storage/s3.ts` keeps the `putObject`/`getObject` seam — `putObject` uploads a base64 data URI and returns the CDN `secure_url` (SHA-256 keyed, folder `civic-media`). `.env.local`: `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET`.
+- **Seed:** Ranchi Municipal Corporation (Jharkhand), 3 hand-drawn ward polygons, 4 departments, full category→department map — `seed/seed.sql` (+ `seed/wards.geojson` mirror). Runners: `seed/seed.mjs` (reference data only) and `seed/reset-neon.mjs` (destructive wipe + reseed).
 
-Local dev (Windows, Docker Desktop must be running):
+Local dev (no Docker — hosted Neon + Cloudinary free tiers):
 ```
-docker compose up -d          # db (postgis+pgvector) + minio
-npm run db:migrate            # apply lib/db/migrations
-npm run db:seed               # Ranchi wards/departments
+# .env.local: DATABASE_URL (Neon) + CLOUDINARY_* + AUTH_SECRET
+npm run db:migrate            # apply lib/db/migrations to Neon
+npm run db:seed               # Ranchi wards/departments (reference data)
+# npm run db:reset            # wipe ALL data + reseed (destructive)
 npm run dev                   # http://localhost:3000
 ```
 In dev the OTP is logged to the server console (and echoed to the login screen via `OTP_DEV_ECHO=true`). Env template: `.env.example`.
 
-Sprint-1 API (`/api/v1`): `auth/otp/{request,verify}`, `auth/{me,logout}`, `reports` (GET feed / POST submit), `reports/draft` (POST), `reports/[id]/upvote` (POST). Verified end-to-end: OTP → in-app capture → draft (pipeline stub + ward lookup + MinIO) → submit → feed → upvote.
+Sprint-1 API (`/api/v1`): `auth/otp/{request,verify}`, `auth/{me,logout}`, `reports` (GET feed / POST submit), `reports/draft` (POST), `reports/[id]/upvote` (POST). Verified end-to-end: OTP → in-app capture → draft (pipeline stub + ward lookup + Cloudinary) → submit → feed → upvote.

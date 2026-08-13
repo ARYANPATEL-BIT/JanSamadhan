@@ -9,7 +9,8 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "docker exec -i civic_db psql -U civic -d civic -v ON_ERROR_STOP=1 -f - < seed/seed.sql"
+    "db:seed": "node --env-file=.env.local seed/seed.mjs",
+    "db:reset": "node --env-file=.env.local seed/reset-neon.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1109.0",
