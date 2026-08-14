@@ -170,6 +170,8 @@
     "analyzingShort": "Analyzing…",
     "capturePhoto": "Capture Photograph",
     "captureNotice": "In-app camera only. This binds your live GPS location and timestamp to the photograph at the moment of capture.",
+    "galleryUpload": "Upload from Gallery",
+    "galleryNotice": "In-app camera is the primary path. Gallery uploads are accepted but marked lower-trust and always routed to manual review.",
     "reviewTitle": "Review & Submit Complaint",
     "detectedCategory": "Detected category:",
     "wardRoute": " → Ward {ward}, {municipality}",
