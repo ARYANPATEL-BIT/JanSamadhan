@@ -62,7 +62,7 @@ export async function POST(req: Request) {
   let verdict;
   let aiAnalysisStatus: "completed" | "failed" | "skipped" = "skipped";
   try {
-    verdict = await getPipelineClient().analyze({
+    verdict = await (await getPipelineClient()).analyze({
       sha256,
       bytes,
       contentType,

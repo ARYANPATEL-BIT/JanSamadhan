@@ -35,7 +35,7 @@ const VALID_CATEGORIES = new Set([
   "other",
 ]);
 
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = "gemini-3.5-flash";
 
 // ---------------------------------------------------------------------------
 // Rate limiter — simple sliding-window counter
@@ -108,6 +108,7 @@ export class GeminiVisionProvider implements VisionAIProvider {
             responseMimeType: "application/json",
             responseSchema: ANALYSIS_SCHEMA,
             temperature: 0.1,
+            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
         AI_CONFIG.analysisTimeoutMs,
@@ -167,6 +168,7 @@ export class GeminiVisionProvider implements VisionAIProvider {
             responseMimeType: "application/json",
             responseSchema: schema,
             temperature: 0.1,
+            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
         AI_CONFIG.analysisTimeoutMs,

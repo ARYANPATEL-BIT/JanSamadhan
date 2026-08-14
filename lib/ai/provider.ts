@@ -33,7 +33,7 @@ export function getVisionProvider(): VisionAIProvider | null {
     // Lazy import so the module isn't loaded when AI is disabled
     const { GeminiVisionProvider } = require("./gemini-provider") as typeof import("./gemini-provider");
     singleton = new GeminiVisionProvider();
-    console.log("[AI] Gemini vision provider initialized (model: gemini-2.5-flash)");
+    console.log("[AI] Gemini vision provider initialized (model: gemini-3.5-flash)");
     return singleton;
   } catch (err) {
     console.error("[AI] Failed to initialize vision provider:", err);

@@ -12,7 +12,7 @@ export const AI_CONFIG = {
   /** Below medium → manual category selection. */
 
   /** Gemini API call timeout in milliseconds. */
-  analysisTimeoutMs: num("AI_ANALYSIS_TIMEOUT_MS", 15000),
+  analysisTimeoutMs: num("AI_ANALYSIS_TIMEOUT_MS", 30000),
   /** Max Gemini API calls per minute (backend rate limit). */
   rateLimitPerMin: num("AI_RATE_LIMIT_PER_MIN", 30),
 
