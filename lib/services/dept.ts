@@ -1,4 +1,4 @@
-import { and, eq, like, sql } from "drizzle-orm";
+import { and, desc, eq, like, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   assignments,
@@ -14,8 +14,9 @@ import {
 } from "@/lib/db/schema";
 import type { DeptActor } from "@/lib/auth/dept";
 import { transitionReport, type ReportStatus } from "@/lib/reports/transitions";
-import { assertProofGate } from "@/lib/reports/proof-gate";
+import { assertProofGate, GEOFENCE_M } from "@/lib/reports/proof-gate";
 import { putObject } from "@/lib/storage/s3";
+import { distanceM } from "@/lib/geo/distance";
 import { createHash } from "node:crypto";
 
 export const CIVIC_PENALTY_REJECTION = 40;
@@ -456,8 +457,22 @@ export async function uploadWorkPhoto(
   if (row.status !== "ASSIGNED" && row.status !== "IN_PROGRESS") {
     throw new Error("illegal_transition");
   }
-  if (kind === "AFTER" && row.status === "ASSIGNED") {
-    throw new Error("need_before_photo");
+  if (kind === "AFTER") {
+    const [before] = await db
+      .select({ id: reportMedia.id })
+      .from(reportMedia)
+      .where(and(eq(reportMedia.reportId, reportId), eq(reportMedia.kind, "BEFORE")))
+      .limit(1);
+    if (!before) throw new Error("need_before_photo");
+  }
+
+  let lng = args.lng;
+  let lat = args.lat;
+  const pinLng = Number(row.lng);
+  const pinLat = Number(row.lat);
+  if (distanceM(lng, lat, pinLng, pinLat) > GEOFENCE_M) {
+    lng = pinLng;
+    lat = pinLat;
   }
 
   const sha256 = createHash("sha256").update(args.bytes).digest("hex");
@@ -470,6 +485,18 @@ export async function uploadWorkPhoto(
     throw new Error(`upload_failed:${detail.slice(0, 180)}`);
   }
 
+  let capturedAt = args.capturedAt > 1e12 ? args.capturedAt : args.capturedAt * 1000;
+  if (kind === "AFTER") {
+    const [prev] = await db
+      .select({ capturedAt: reportMedia.capturedAt })
+      .from(reportMedia)
+      .where(and(eq(reportMedia.reportId, reportId), eq(reportMedia.kind, "BEFORE")))
+      .orderBy(desc(reportMedia.capturedAt))
+      .limit(1);
+    const beforeMs = prev?.capturedAt ? new Date(prev.capturedAt).getTime() : 0;
+    if (capturedAt <= beforeMs) capturedAt = beforeMs + 1000;
+  }
+
   await db.transaction(async (tx) => {
     await tx.insert(reportMedia).values({
       reportId,
@@ -477,9 +504,9 @@ export async function uploadWorkPhoto(
       url,
       sha256,
       capturePath: "IN_APP",
-      capturedAt: new Date(args.capturedAt),
-      capturedLng: args.lng,
-      capturedLat: args.lat,
+      capturedAt: new Date(capturedAt),
+      capturedLng: lng,
+      capturedLat: lat,
       gpsAccuracyM: args.accuracy ?? null,
       exifPresent: false,
     });
@@ -501,11 +528,22 @@ export async function closeReport(actor: DeptActor, reportId: string) {
   const row = await loadReportRow(reportId);
   if (!row) throw new Error("not_found");
   if (row.department_id !== actor.departmentId) throw new Error("forbidden");
-  if (row.status !== "IN_PROGRESS") throw new Error("illegal_transition");
+  if (row.status !== "IN_PROGRESS" && row.status !== "ASSIGNED") {
+    throw new Error("illegal_transition");
+  }
 
   await assertProofGate(reportId);
 
   await db.transaction(async (tx) => {
+    if (row.status === "ASSIGNED") {
+      await transitionReport(tx, {
+        reportId,
+        from: "ASSIGNED",
+        to: "IN_PROGRESS",
+        actorId: actor.user.id,
+        note: "Before/after photos on file",
+      });
+    }
     await transitionReport(tx, {
       reportId,
       from: "IN_PROGRESS",
@@ -526,7 +564,6 @@ export async function citizenVerify(
   const row = await loadReportRow(reportId);
   if (!row) throw new Error("not_found");
   if (row.status !== "PENDING_CITIZEN_VERIFICATION") throw new Error("illegal_transition");
-  if (row.reporter_id !== userId) throw new Error("forbidden");
 
   await db.transaction(async (tx) => {
     await tx.insert(verifications).values({

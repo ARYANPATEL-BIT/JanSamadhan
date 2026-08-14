@@ -27,7 +27,7 @@ export async function POST(
 
   const form = await req.formData();
   const file = form.get("image");
-  if (!(file instanceof File)) {
+  if (!(file instanceof Blob) || file.size === 0) {
     return NextResponse.json({ error: "image_required" }, { status: 400 });
   }
 
@@ -35,7 +35,7 @@ export async function POST(
   const claimedMime = file.type || "image/jpeg";
 
   // Validate image
-  const validation = validateImage(bytes, claimedMime, file.name);
+  const validation = validateImage(bytes, claimedMime, "after.jpg");
   if (!validation.valid) {
     return NextResponse.json(
       { error: "invalid_image", detail: validation.error },

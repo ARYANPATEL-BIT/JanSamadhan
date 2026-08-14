@@ -32,7 +32,9 @@ export default async function ReportDetailPage({
   const category = tc(report.category);
 
   const primary = report.media.find((m) => m.kind === "REPORT") ?? report.media[0];
+  const beforeWork = report.media.find((m) => m.kind === "BEFORE");
   const afterMedia = report.media.find((m) => m.kind === "AFTER");
+  const beforeMedia = beforeWork ?? primary;
   const trust = report.capture_trust;
   const confidence = report.category_confidence;
 
@@ -52,7 +54,7 @@ export default async function ReportDetailPage({
             {t("title", { category })}
           </h1>
 
-          {primary && afterMedia ? (
+          {beforeMedia && afterMedia ? (
             <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "4px", color: "var(--text-muted)" }}>
@@ -60,7 +62,7 @@ export default async function ReportDetailPage({
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={primary.url}
+                  src={beforeMedia.url}
                   alt={`${report.category} - before`}
                   style={{
                     width: "100%",
@@ -239,9 +241,7 @@ export default async function ReportDetailPage({
             </div>
           </div>
 
-          {user &&
-            report.reporter_id === user.id &&
-            report.status === "PENDING_CITIZEN_VERIFICATION" && (
+          {user && report.status === "PENDING_CITIZEN_VERIFICATION" && (
               <CitizenVerify reportId={report.id} />
             )}
 

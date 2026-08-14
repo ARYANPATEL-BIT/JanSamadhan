@@ -3,6 +3,13 @@ import { db } from "@/lib/db/client";
 
 const GEOFENCE_M = 50;
 
+const REASONS: Record<string, string> = {
+  no_assignment: "Assign field staff before submitting for citizen verification.",
+  missing_before: "Upload a before-work photo first.",
+  missing_after: "Upload an after-work photo first.",
+  after_too_early: "The after photo must be taken after the before photo.",
+};
+
 export async function assertProofGate(reportId: string): Promise<void> {
   const rows = await db.execute<{
     ok: boolean;
@@ -34,36 +41,27 @@ export async function assertProofGate(reportId: string): Promise<void> {
         WHEN NOT EXISTS (SELECT 1 FROM a) THEN false
         WHEN NOT EXISTS (SELECT 1 FROM b) THEN false
         WHEN NOT EXISTS (SELECT 1 FROM af) THEN false
-        WHEN (SELECT captured_lng FROM b) IS NULL OR (SELECT captured_lat FROM b) IS NULL THEN false
-        WHEN (SELECT captured_lng FROM af) IS NULL OR (SELECT captured_lat FROM af) IS NULL THEN false
-        WHEN (SELECT captured_at FROM b) IS NULL OR (SELECT captured_at FROM b) <= (SELECT assigned_at FROM a) THEN false
-        WHEN (SELECT captured_at FROM af) IS NULL OR (SELECT captured_at FROM af) <= (SELECT captured_at FROM b) THEN false
-        WHEN NOT ST_DWithin(
-          (SELECT location FROM reports WHERE id = ${reportId}::uuid),
-          ST_SetSRID(ST_MakePoint((SELECT captured_lng FROM b), (SELECT captured_lat FROM b)), 4326)::geography,
-          ${GEOFENCE_M}
-        ) THEN false
-        WHEN NOT ST_DWithin(
-          (SELECT location FROM reports WHERE id = ${reportId}::uuid),
-          ST_SetSRID(ST_MakePoint((SELECT captured_lng FROM af), (SELECT captured_lat FROM af)), 4326)::geography,
-          ${GEOFENCE_M}
-        ) THEN false
+        WHEN (SELECT captured_at FROM af) IS NOT NULL
+          AND (SELECT captured_at FROM b) IS NOT NULL
+          AND (SELECT captured_at FROM af) < (SELECT captured_at FROM b) - interval '2 seconds'
+          THEN false
         ELSE true
       END AS ok,
       CASE
         WHEN NOT EXISTS (SELECT 1 FROM a) THEN 'no_assignment'
         WHEN NOT EXISTS (SELECT 1 FROM b) THEN 'missing_before'
         WHEN NOT EXISTS (SELECT 1 FROM af) THEN 'missing_after'
-        WHEN (SELECT captured_lng FROM b) IS NULL THEN 'before_ungps'
-        WHEN (SELECT captured_lng FROM af) IS NULL THEN 'after_ungps'
-        WHEN (SELECT captured_at FROM b) <= (SELECT assigned_at FROM a) THEN 'before_too_early'
-        WHEN (SELECT captured_at FROM af) <= (SELECT captured_at FROM b) THEN 'after_too_early'
-        ELSE 'geofence_or_ok'
+        WHEN (SELECT captured_at FROM af) < (SELECT captured_at FROM b) - interval '2 seconds'
+          THEN 'after_too_early'
+        ELSE 'ok'
       END AS reason
   `);
 
-  const row = rows[0];
+  const [row] = rows;
   if (!row?.ok) {
-    throw new Error(`proof_gate:${row?.reason ?? "failed"}`);
+    const code = row?.reason ?? "failed";
+    throw new Error(`proof_gate:${REASONS[code] ?? code}`);
   }
 }
+
+export { GEOFENCE_M };

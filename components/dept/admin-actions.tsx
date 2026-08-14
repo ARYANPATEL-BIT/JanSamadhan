@@ -61,7 +61,7 @@ export function AdminActions({
 
   const canTriage = status === "SUBMITTED" || status === "REOPENED" || status === "ASSIGNED" || status === "IN_PROGRESS";
   const canAssign = status === "SUBMITTED" || status === "REOPENED" || status === "ASSIGNED" || status === "IN_PROGRESS";
-  const canClose = status === "IN_PROGRESS";
+  const canClose = status === "IN_PROGRESS" || status === "ASSIGNED";
 
   return (
     <div className="gov-card" style={{ marginTop: "16px" }}>
@@ -156,7 +156,7 @@ export function AdminActions({
           <div>
             <strong style={{ display: "block", marginBottom: "8px" }}>Close (proof gate)</strong>
             <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "8px" }}>
-              Requires before + after photos within 50 m of the pin, captured after assignment.
+              Needs a before photo and an after photo. Submit to send the ticket to the public report page for citizen confirmation.
             </p>
             <button
               type="button"

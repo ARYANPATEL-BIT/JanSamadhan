@@ -5,7 +5,8 @@ export function deptError(err: unknown): NextResponse {
   if (message === "forbidden") return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (message === "not_found") return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (message.startsWith("proof_gate:")) {
-    return NextResponse.json({ error: "proof_gate", reason: message.slice(11) }, { status: 400 });
+    const reason = message.slice("proof_gate:".length);
+    return NextResponse.json({ error: "proof_gate", reason }, { status: 400 });
   }
   if (message.startsWith("illegal_transition")) {
     return NextResponse.json({ error: "illegal_transition" }, { status: 409 });
