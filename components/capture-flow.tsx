@@ -124,6 +124,14 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
     }
   }
 
+  /** Gallery fallback — lower-trust, always routed to manual review. */
+  function onGalleryPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) submitDraft(file, "GALLERY");
+    // reset so picking the same file again re-fires onChange
+    e.target.value = "";
+  }
+
   function shutter() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -436,16 +444,40 @@ export function CaptureFlow({ categories }: { categories: readonly string[] }) {
         <div className="gov-notice gov-notice--danger">{cameraError}</div>
       )}
 
-      <button
-        className="gov-btn gov-btn--saffron gov-btn--lg gov-btn--block"
-        onClick={shutter}
-        disabled={phase === "analyzing" || !!cameraError}
-        style={{ fontSize: "1.1rem", minHeight: "52px" }}
-      >
-        {phase === "analyzing" ? t("analyzingShort") : `📸 ${t("capturePhoto")}`}
-      </button>
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button
+          className="gov-btn gov-btn--saffron gov-btn--lg"
+          onClick={shutter}
+          disabled={phase === "analyzing" || !!cameraError}
+          style={{ flex: 1, fontSize: "1.1rem", minHeight: "52px" }}
+        >
+          {phase === "analyzing" ? t("analyzingShort") : `📸 ${t("capturePhoto")}`}
+        </button>
+        <label
+          className="gov-btn gov-btn--secondary gov-btn--lg"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "52px",
+            cursor: phase === "analyzing" ? "not-allowed" : "pointer",
+          }}
+        >
+          🖼️ {t("galleryUpload")}
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={onGalleryPick}
+            disabled={phase === "analyzing"}
+          />
+        </label>
+      </div>
       <div className="gov-notice gov-notice--info" style={{ margin: 0 }}>
         {t("captureNotice")}
+      </div>
+      <div className="gov-notice gov-notice--info" style={{ margin: 0 }}>
+        {t("galleryNotice")}
       </div>
     </div>
   );

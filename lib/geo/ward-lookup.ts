@@ -1,8 +1,20 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { categoryDepartmentMap } from "@/lib/db/schema";
+import { categoryDepartmentMap, municipalities } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import type { Category } from "@/lib/pipeline/types";
+
+/** Seeded demo city — used when GPS is outside ward polygons. */
+const FALLBACK_MUNICIPALITY_NAME = "Ranchi Municipal Corporation";
+
+export async function getFallbackMunicipalityId(): Promise<string | null> {
+  const [row] = await db
+    .select({ id: municipalities.id })
+    .from(municipalities)
+    .where(eq(municipalities.name, FALLBACK_MUNICIPALITY_NAME))
+    .limit(1);
+  return row?.id ?? null;
+}
 
 export interface WardResolution {
   wardId: string;
@@ -78,4 +90,14 @@ export async function resolveDepartment(
     .limit(1);
 
   return row ?? null;
+}
+
+/** Route a category even when the pin missed every ward polygon. */
+export async function resolveDepartmentForCategory(
+  municipalityId: string | null,
+  category: Category,
+): Promise<DepartmentResolution | null> {
+  const muni = municipalityId ?? (await getFallbackMunicipalityId());
+  if (!muni) return null;
+  return resolveDepartment(muni, category);
 }

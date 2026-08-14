@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPipelineClient } from "@/lib/pipeline/client";
-import { resolveWard, resolveDepartment } from "@/lib/geo/ward-lookup";
+import { resolveWard, resolveDepartment, getFallbackMunicipalityId } from "@/lib/geo/ward-lookup";
 import { putObject } from "@/lib/storage/s3";
 import { signDraftTicket, type DraftTicket } from "@/lib/reports/draft-ticket";
 import { validateImage } from "@/lib/ai/image-validation";
@@ -97,8 +97,9 @@ export async function POST(req: Request) {
   }
 
   const ward = await resolveWard(lng, lat);
-  const dept = ward
-    ? await resolveDepartment(ward.municipalityId, verdict.layer1.category)
+  const municipalityId = ward?.municipalityId ?? (await getFallbackMunicipalityId());
+  const dept = municipalityId
+    ? await resolveDepartment(municipalityId, verdict.layer1.category)
     : null;
 
   const ticket: DraftTicket = {
@@ -114,7 +115,7 @@ export async function POST(req: Request) {
     capturePath,
     captureTrust: verdict.layer3.captureTrust,
     wardId: ward?.wardId ?? null,
-    municipalityId: ward?.municipalityId ?? null,
+    municipalityId,
     suggestedCategory: verdict.layer1.category,
     categoryConfidence: verdict.layer1.confidence,
     combined: verdict.combined,

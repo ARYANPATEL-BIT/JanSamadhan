@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getReport } from "@/lib/services/reports";
 import { UpvoteButton } from "@/components/upvote-button";
+import { CitizenVerify } from "@/components/citizen-verify";
 import { Breadcrumbs } from "@/components/gov/breadcrumbs";
 import { SidebarNav } from "@/components/gov/sidebar-nav";
 
@@ -31,7 +32,9 @@ export default async function ReportDetailPage({
   const category = tc(report.category);
 
   const primary = report.media.find((m) => m.kind === "REPORT") ?? report.media[0];
+  const beforeWork = report.media.find((m) => m.kind === "BEFORE");
   const afterMedia = report.media.find((m) => m.kind === "AFTER");
+  const beforeMedia = beforeWork ?? primary;
   const trust = report.capture_trust;
   const confidence = report.category_confidence;
 
@@ -51,8 +54,7 @@ export default async function ReportDetailPage({
             {t("title", { category })}
           </h1>
 
-          {/* Before/After side-by-side if both exist */}
-          {primary && afterMedia ? (
+          {beforeMedia && afterMedia ? (
             <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: "0.75rem", fontWeight: 600, marginBottom: "4px", color: "var(--text-muted)" }}>
@@ -60,7 +62,7 @@ export default async function ReportDetailPage({
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={primary.url}
+                  src={beforeMedia.url}
                   alt={`${report.category} - before`}
                   style={{
                     width: "100%",
@@ -171,7 +173,6 @@ export default async function ReportDetailPage({
             </div>
           </div>
 
-          {/* AI Analysis section */}
           <div className="gov-card" style={{ marginBottom: "16px" }}>
             <div className="gov-card__header">AI Analysis</div>
             <div className="gov-card__body" style={{ padding: 0 }}>
@@ -239,6 +240,10 @@ export default async function ReportDetailPage({
               </table>
             </div>
           </div>
+
+          {user && report.status === "PENDING_CITIZEN_VERIFICATION" && (
+              <CitizenVerify reportId={report.id} />
+            )}
 
           {/* Upvote */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
