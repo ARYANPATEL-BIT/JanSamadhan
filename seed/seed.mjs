@@ -19,6 +19,8 @@ const sql = postgres(DATABASE_URL, { ssl: "require" });
 async function main() {
   console.log("🌱 Seeding wards + departments (seed/seed.sql)…");
   await sql.unsafe(readFileSync("seed/seed.sql", "utf-8"));
+  console.log("🌱 Seeding department staff (seed/staff.sql)…");
+  await sql.unsafe(readFileSync("seed/staff.sql", "utf-8"));
 
   const [{ count: mCount }] = await sql`SELECT count(*) FROM municipalities`;
   const [{ count: wCount }] = await sql`SELECT count(*) FROM wards`;

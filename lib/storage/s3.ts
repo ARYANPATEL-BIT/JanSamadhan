@@ -17,6 +17,13 @@ export async function putObject(
   bytes: Uint8Array,
   contentType: string,
 ): Promise<string> {
+  if (
+    !process.env.CLOUDINARY_CLOUD_NAME ||
+    !process.env.CLOUDINARY_API_KEY ||
+    !process.env.CLOUDINARY_API_SECRET
+  ) {
+    throw new Error("Cloudinary is not configured");
+  }
   // Convert bytes to base64 data URI for Cloudinary upload
   const mime = contentType || "image/jpeg";
   const b64 = Buffer.from(bytes).toString("base64");
@@ -29,7 +36,7 @@ export async function putObject(
     public_id: publicId,
     folder: "civic-media",
     resource_type: "image",
-    overwrite: false, // SHA-keyed, so same file = same key = skip re-upload
+    overwrite: true,
   });
 
   // Return the full Cloudinary CDN URL — no proxy needed

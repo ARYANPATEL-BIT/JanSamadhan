@@ -108,6 +108,8 @@ export const escalationTriggerEnum = pgEnum("escalation_trigger", [
   "SLA_BREACH",
 ]);
 
+export const staffRoleEnum = pgEnum("staff_role", ["DEPT_ADMIN", "FIELD_STAFF"]);
+
 // ---------------------------------------------------------------------------
 // Tables (PRD §8.1)
 // ---------------------------------------------------------------------------
@@ -200,6 +202,13 @@ export const reports = pgTable(
     // set when this submission was merged as a duplicate of another report
     parentReportId: uuid("parent_report_id"),
     captureTrust: real("capture_trust"),
+    description: text("description"),
+    possibleDuplicate: boolean("possible_duplicate").notNull().default(false),
+    pipelineCombined: text("pipeline_combined"),
+    pipelineNsfw: boolean("pipeline_nsfw").notNull().default(false),
+    pipelineCollusion: boolean("pipeline_collusion").notNull().default(false),
+    nearestHamming: integer("nearest_hamming"),
+    nearestCosine: real("nearest_cosine"),
     // --- AI fields (sprint 2) ---
     spamFlag: boolean("spam_flag").notNull().default(false),
     duplicateFlag: boolean("duplicate_flag").notNull().default(false),
@@ -234,6 +243,8 @@ export const reportMedia = pgTable(
     embedding: vector512("embedding"),
     capturePath: capturePathEnum("capture_path").notNull().default("IN_APP"),
     capturedAt: timestamp("captured_at", { withTimezone: true }),
+    capturedLng: real("captured_lng"),
+    capturedLat: real("captured_lat"),
     gpsAccuracyM: real("gps_accuracy_m"),
     exifPresent: boolean("exif_present").notNull().default(false),
   },
@@ -256,6 +267,26 @@ export const upvotes = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.reportId] })],
+);
+
+/** Staff scoped to one municipality + one department. v1: one row per user. */
+export const departmentMemberships = pgTable(
+  "department_memberships",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" })
+      .unique(),
+    municipalityId: uuid("municipality_id")
+      .notNull()
+      .references(() => municipalities.id, { onDelete: "cascade" }),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => departments.id, { onDelete: "cascade" }),
+    role: staffRoleEnum("role").notNull(),
+  },
+  (t) => [index("dept_memberships_dept_ix").on(t.departmentId)],
 );
 
 export const assignments = pgTable("assignments", {
