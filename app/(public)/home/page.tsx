@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Breadcrumbs } from "@/components/gov/breadcrumbs";
 import { SidebarNav } from "@/components/gov/sidebar-nav";
 import { AnnouncementStrip } from "@/components/gov/announcement-strip";
+import { CATEGORY_META } from "@/lib/categories";
 import { db } from "@/lib/db/client";
 import { escalations, reports } from "@/lib/db/schema";
 import { isNull, sql } from "drizzle-orm";
@@ -9,6 +11,15 @@ import { isNull, sql } from "drizzle-orm";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const t = await getTranslations("home");
+  const tc = await getTranslations("categories");
+  const tn = await getTranslations("nav");
+
+  // Localised, comma-separated list of the issue categories for the About row.
+  const categoryList = Object.keys(CATEGORY_META)
+    .map((c) => tc(c))
+    .join(", ");
+
   // Fetch real stats from the database
   let totalReports = 0;
   let resolvedCount = 0;
@@ -42,7 +53,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Breadcrumbs items={[{ label: "Home" }]} />
+      <Breadcrumbs items={[{ label: tn("home") }]} />
       <div className="gov-container gov-interior">
         <SidebarNav />
         <div className="gov-interior__main" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -50,23 +61,13 @@ export default async function HomePage() {
           {/* Welcome Section */}
           <div className="gov-card">
             <div className="gov-card__header">
-              Welcome to JanSamadhan — Civic Grievance Redressal Portal / नागरिक शिकायत निवारण पोर्टल
+              {t("welcomeTitle")}
             </div>
             <div className="gov-card__body">
-              <p style={{ marginBottom: "8px" }}>
-                JanSamadhan is the official online platform of Nagarpratinidhi Municipal Corporation for
-                registration, tracking, and resolution of civic grievances. Citizens can report infrastructure
-                issues such as potholes, garbage dumps, broken streetlights, waterlogging, and other civic
-                problems through GPS-verified photo capture.
-              </p>
-              <p style={{ marginBottom: "8px" }}>
-                All complaints are automatically routed to the concerned department based on ward jurisdiction
-                and issue category. Citizens can track the status of their complaints in real time and view
-                all public reports for transparency.
-              </p>
+              <p style={{ marginBottom: "8px" }}>{t("welcomeP1")}</p>
+              <p style={{ marginBottom: "8px" }}>{t("welcomeP2")}</p>
               <p>
-                <strong>For assistance:</strong> Contact the Grievance Cell at 0651-XXXXXXX or
-                email grievance@nmc.gov.in during office hours (Mon–Sat, 10:00 AM – 5:00 PM).
+                <strong>{t("assistanceLabel")}</strong> {t("assistanceText")}
               </p>
             </div>
           </div>
@@ -76,27 +77,27 @@ export default async function HomePage() {
 
           {/* Quick Services */}
           <div>
-            <h2 style={{ marginBottom: "12px" }}>Citizen Services</h2>
+            <h2 style={{ marginBottom: "12px" }}>{t("citizenServices")}</h2>
             <div className="gov-services-grid">
               <Link href="/report/new" className="gov-service-card">
                 <span className="gov-service-card__icon">📝</span>
-                <div className="gov-service-card__title">Register Complaint</div>
+                <div className="gov-service-card__title">{t("serviceRegisterTitle")}</div>
                 <div className="gov-service-card__desc">
-                  Report a civic issue with GPS-verified photo capture
+                  {t("serviceRegisterDesc")}
                 </div>
               </Link>
               <Link href="/feed" className="gov-service-card">
                 <span className="gov-service-card__icon">📋</span>
-                <div className="gov-service-card__title">Public Reports</div>
+                <div className="gov-service-card__title">{t("servicePublicTitle")}</div>
                 <div className="gov-service-card__desc">
-                  View all registered complaints and their current status
+                  {t("servicePublicDesc")}
                 </div>
               </Link>
               <Link href="/track" className="gov-service-card">
                 <span className="gov-service-card__icon">🔍</span>
-                <div className="gov-service-card__title">Track Status</div>
+                <div className="gov-service-card__title">{t("serviceTrackTitle")}</div>
                 <div className="gov-service-card__desc">
-                  Check the resolution status of your registered complaint
+                  {t("serviceTrackDesc")}
                 </div>
               </Link>
             </div>
@@ -104,56 +105,56 @@ export default async function HomePage() {
 
           {/* Statistics */}
           <div>
-            <h2 style={{ marginBottom: "12px" }}>Portal Statistics</h2>
+            <h2 style={{ marginBottom: "12px" }}>{t("portalStatistics")}</h2>
             <div className="gov-stats-row">
               <div className="gov-stat">
                 <div className="gov-stat__number">{totalReports.toLocaleString("en-IN")}</div>
-                <div className="gov-stat__label">Total Complaints</div>
+                <div className="gov-stat__label">{t("statTotal")}</div>
               </div>
               <div className="gov-stat">
                 <div className="gov-stat__number">{resolvedCount.toLocaleString("en-IN")}</div>
-                <div className="gov-stat__label">Resolved</div>
+                <div className="gov-stat__label">{t("statResolved")}</div>
               </div>
               <div className="gov-stat">
                 <div className="gov-stat__number">{pendingCount.toLocaleString("en-IN")}</div>
-                <div className="gov-stat__label">Pending</div>
+                <div className="gov-stat__label">{t("statPending")}</div>
               </div>
               <div className="gov-stat">
                 <div className="gov-stat__number">{escalatedCount.toLocaleString("en-IN")}</div>
-                <div className="gov-stat__label">Escalated</div>
+                <div className="gov-stat__label">{t("statEscalated")}</div>
               </div>
             </div>
           </div>
 
           {/* About Section */}
           <div className="gov-card">
-            <div className="gov-card__header">About This Portal</div>
+            <div className="gov-card__header">{t("aboutTitle")}</div>
             <div className="gov-card__body">
               <table className="gov-table">
                 <tbody>
                   <tr>
-                    <td style={{ fontWeight: 600, width: "220px" }}>Portal Name</td>
-                    <td>JanSamadhan — Civic Grievance Redressal Portal</td>
+                    <td style={{ fontWeight: 600, width: "220px" }}>{t("rowPortalName")}</td>
+                    <td>{t("valPortalName")}</td>
                   </tr>
                   <tr>
-                    <td style={{ fontWeight: 600 }}>Managing Authority</td>
-                    <td>Nagarpratinidhi Municipal Corporation</td>
+                    <td style={{ fontWeight: 600 }}>{t("rowAuthority")}</td>
+                    <td>{t("valAuthority")}</td>
                   </tr>
                   <tr>
-                    <td style={{ fontWeight: 600 }}>Nodal Department</td>
-                    <td>IT &amp; e-Governance Division</td>
+                    <td style={{ fontWeight: 600 }}>{t("rowNodalDept")}</td>
+                    <td>{t("valNodalDept")}</td>
                   </tr>
                   <tr>
-                    <td style={{ fontWeight: 600 }}>Coverage</td>
-                    <td>All municipal wards under NMC jurisdiction</td>
+                    <td style={{ fontWeight: 600 }}>{t("rowCoverage")}</td>
+                    <td>{t("valCoverage")}</td>
                   </tr>
                   <tr>
-                    <td style={{ fontWeight: 600 }}>Issue Categories</td>
-                    <td>Pothole, Garbage Dump, Streetlight Outage, Waterlogging, Broken Footpath, Open Drain, Illegal Dumping, Damaged Signage, Fallen Tree, Stray Animal, Other</td>
+                    <td style={{ fontWeight: 600 }}>{t("rowCategories")}</td>
+                    <td>{categoryList}</td>
                   </tr>
                   <tr>
-                    <td style={{ fontWeight: 600 }}>Complaint SLA</td>
-                    <td>72 hours for initial acknowledgement; department-specific resolution timelines as per NMC guidelines</td>
+                    <td style={{ fontWeight: 600 }}>{t("rowSla")}</td>
+                    <td>{t("valSla")}</td>
                   </tr>
                 </tbody>
               </table>
@@ -162,9 +163,7 @@ export default async function HomePage() {
 
           {/* Important Notice */}
           <div className="gov-notice gov-notice--info">
-            <strong>Important:</strong> All complaints require a GPS-verified photograph captured through the
-            portal&apos;s camera. Gallery uploads are not accepted to ensure location and time authenticity.
-            Duplicate and spam submissions are automatically detected by the system.
+            <strong>{t("importantLabel")}</strong> {t("importantText")}
           </div>
         </div>
       </div>

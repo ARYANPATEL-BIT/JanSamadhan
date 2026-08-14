@@ -2,17 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 const SIDEBAR_LINKS = [
-  { href: "/report/new", label: "Register Complaint" },
-  { href: "/track", label: "Track Complaint" },
-  { href: "/feed", label: "Public Reports" },
-  { href: "/departments", label: "Departments" },
-  { href: "/civic-score", label: "Civic Score" },
-  { href: "/contact", label: "Contact Us" },
-];
+  { href: "/report/new", key: "registerComplaint" },
+  { href: "/track", key: "trackComplaint" },
+  { href: "/feed", key: "publicReports" },
+  { href: "/departments", key: "departments" },
+  { href: "/civic-score", key: "civicScore" },
+  { href: "/contact", key: "contactUs" },
+] as const;
 
 export function SidebarNav() {
+  const t = useTranslations("nav");
+  const tf = useTranslations("footer");
   const pathname = usePathname();
 
   function isActive(href: string): boolean {
@@ -22,7 +25,7 @@ export function SidebarNav() {
 
   return (
     <aside className="gov-sidebar" aria-label="Section navigation">
-      <div className="gov-sidebar__header">Quick Links</div>
+      <div className="gov-sidebar__header">{tf("quickLinks")}</div>
       <ul className="gov-sidebar__list">
         {SIDEBAR_LINKS.map((link) => (
           <li key={link.href}>
@@ -30,7 +33,7 @@ export function SidebarNav() {
               href={link.href}
               className={`gov-sidebar__link${isActive(link.href) ? " gov-sidebar__link--active" : ""}`}
             >
-              {link.label}
+              {t(link.key)}
             </Link>
           </li>
         ))}

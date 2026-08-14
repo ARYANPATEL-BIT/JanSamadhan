@@ -1,6 +1,6 @@
-import { sql, eq, and } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { reportMedia, reports, statusEvents, upvotes, users } from "@/lib/db/schema";
+import { reportMedia, reports, statusEvents, users } from "@/lib/db/schema";
 
 /**
  * Civic points awarded when a citizen submits an issue that hasn't been
@@ -40,7 +40,8 @@ export async function createReportFromTicket(args: CreateReportArgs): Promise<{ 
     const inserted = await tx.execute<{ id: string }>(sql`
       INSERT INTO reports (
         reporter_id, category, category_confidence, location, ward_id,
-        department_id, status, capture_trust, sla_due_at
+        department_id, status, capture_trust, sla_due_at,
+        spam_flag, duplicate_flag, ai_analysis_status, ai_reason
       ) VALUES (
         ${reporterId},
         ${category}::category,
@@ -50,7 +51,11 @@ export async function createReportFromTicket(args: CreateReportArgs): Promise<{ 
         ${dept?.departmentId ?? null},
         'SUBMITTED',
         ${ticket.captureTrust},
-        ${slaDueAt ? slaDueAt.toISOString() : null}
+        ${slaDueAt ? slaDueAt.toISOString() : null},
+        ${ticket.spamSuspected ?? false},
+        ${ticket.combined === "DUPLICATE_CANDIDATES"},
+        ${ticket.aiAnalysisStatus ?? "skipped"},
+        ${null}
       )
       RETURNING id
     `);
@@ -116,12 +121,12 @@ export async function listFeed(viewerId: string | null): Promise<FeedItem[]> {
     status: string;
     lng: number;
     lat: number;
-    upvote_count: number;
+    upvote_count: number | string;
     created_at: string;
     ward_no: number | null;
     municipality_name: string | null;
     thumbnail_url: string | null;
-    viewer_upvoted: boolean;
+    viewer_upvoted: boolean | string;
   }>(sql`
     SELECT
       r.id,
@@ -158,12 +163,12 @@ export async function listFeed(viewerId: string | null): Promise<FeedItem[]> {
     status: r.status,
     lng: r.lng,
     lat: r.lat,
-    upvoteCount: r.upvote_count,
+    upvoteCount: Number(r.upvote_count) || 0,
     createdAt: r.created_at,
     wardNo: r.ward_no,
     municipalityName: r.municipality_name,
     thumbnailUrl: r.thumbnail_url,
-    viewerUpvoted: r.viewer_upvoted,
+    viewerUpvoted: r.viewer_upvoted === true || r.viewer_upvoted === "t",
   }));
 }
 
@@ -174,13 +179,18 @@ export async function getReport(id: string, viewerId: string | null) {
     status: string;
     lng: number;
     lat: number;
-    upvote_count: number;
+    upvote_count: number | string;
     created_at: string;
     ward_no: number | null;
     municipality_name: string | null;
     department_name: string | null;
     capture_trust: number | null;
-    viewer_upvoted: boolean;
+    category_confidence: number | null;
+    spam_flag: boolean | string;
+    duplicate_flag: boolean | string;
+    ai_analysis_status: string | null;
+    ai_reason: string | null;
+    viewer_upvoted: boolean | string;
   }>(sql`
     SELECT
       r.id,
@@ -191,6 +201,11 @@ export async function getReport(id: string, viewerId: string | null) {
       r.upvote_count,
       r.created_at,
       r.capture_trust,
+      r.category_confidence,
+      r.spam_flag,
+      r.duplicate_flag,
+      r.ai_analysis_status,
+      r.ai_reason,
       w.ward_no,
       m.name AS municipality_name,
       d.name AS department_name,
@@ -212,7 +227,14 @@ export async function getReport(id: string, viewerId: string | null) {
     .where(eq(reportMedia.reportId, id))
     .orderBy(reportMedia.id);
 
-  return { ...row, media };
+  return {
+    ...row,
+    upvote_count: Number(row.upvote_count) || 0,
+    viewer_upvoted: row.viewer_upvoted === true || row.viewer_upvoted === "t",
+    spam_flag: row.spam_flag === true || row.spam_flag === "t",
+    duplicate_flag: row.duplicate_flag === true || row.duplicate_flag === "t",
+    media,
+  };
 }
 
 /** Toggle one upvote per user per report; keeps reports.upvote_count in sync. */
@@ -220,38 +242,32 @@ export async function toggleUpvote(
   userId: string,
   reportId: string,
 ): Promise<{ upvoted: boolean; count: number }> {
-  return db.transaction(async (tx) => {
-    const existing = await tx
-      .select()
-      .from(upvotes)
-      .where(and(eq(upvotes.userId, userId), eq(upvotes.reportId, reportId)))
-      .limit(1);
+  // One statement so a double-click cannot insert then immediately delete,
+  // and Neon is not hit with a 4-roundtrip transaction (those were taking 3–6s).
+  const rows = await db.execute<{ count: number | string; upvoted: boolean | string }>(sql`
+    WITH del AS (
+      DELETE FROM upvotes
+      WHERE user_id = ${userId}::uuid AND report_id = ${reportId}::uuid
+      RETURNING 1
+    ),
+    ins AS (
+      INSERT INTO upvotes (user_id, report_id, weight)
+      SELECT ${userId}::uuid, ${reportId}::uuid, 1
+      WHERE NOT EXISTS (SELECT 1 FROM del)
+      RETURNING 1
+    )
+    UPDATE reports
+    SET upvote_count = GREATEST(
+      upvote_count + CASE WHEN EXISTS (SELECT 1 FROM ins) THEN 1 ELSE -1 END,
+      0
+    )
+    WHERE id = ${reportId}::uuid
+    RETURNING upvote_count AS count, EXISTS (SELECT 1 FROM ins) AS upvoted
+  `);
 
-    let upvoted: boolean;
-    if (existing.length > 0) {
-      await tx
-        .delete(upvotes)
-        .where(and(eq(upvotes.userId, userId), eq(upvotes.reportId, reportId)));
-      await tx
-        .update(reports)
-        .set({ upvoteCount: sql`GREATEST(${reports.upvoteCount} - 1, 0)` })
-        .where(eq(reports.id, reportId));
-      upvoted = false;
-    } else {
-      // weight is a flat 1 in sprint 1; civic-score weighting is sprint 4.
-      await tx.insert(upvotes).values({ userId, reportId, weight: 1 });
-      await tx
-        .update(reports)
-        .set({ upvoteCount: sql`${reports.upvoteCount} + 1` })
-        .where(eq(reports.id, reportId));
-      upvoted = true;
-    }
-
-    const [row] = await tx
-      .select({ count: reports.upvoteCount })
-      .from(reports)
-      .where(eq(reports.id, reportId))
-      .limit(1);
-    return { upvoted, count: row?.count ?? 0 };
-  });
+  const row = rows[0];
+  if (!row) {
+    throw new Error("report_not_found");
+  }
+  return { upvoted: row.upvoted === true || row.upvoted === "t", count: Number(row.count) || 0 };
 }
