@@ -42,7 +42,14 @@
     "corpNameSub": "JanSamadhan",
     "crestAlt": "जनसमाधान बोधचिन्ह",
     "schemeDigitalAlt": "डिजिटल जनसमाधान",
-    "schemeSwachhAlt": "स्वच्छ जनसमाधान"
+    "schemeSwachhAlt": "स्वच्छ जनसमाधान",
+    "dignitariesLabel": "माननीय मान्यवर",
+    "pmName": "श्री नरेंद्र मोदी",
+    "pmTitle": "माननीय पंतप्रधान",
+    "pmAlt": "श्री नरेंद्र मोदी, माननीय पंतप्रधान",
+    "ministerName": "श्री नितीन गडकरी",
+    "ministerTitle": "माननीय केंद्रीय मंत्री",
+    "ministerAlt": "श्री नितीन गडकरी, माननीय केंद्रीय मंत्री"
   },
   "footer": {
     "quickLinks": "द्रुत दुवे",

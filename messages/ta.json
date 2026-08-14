@@ -42,7 +42,14 @@
     "corpNameSub": "JanSamadhan",
     "crestAlt": "ஜனசமாதான் சின்னம்",
     "schemeDigitalAlt": "டிஜிட்டல் ஜனசமாதான்",
-    "schemeSwachhAlt": "ஸ்வச் ஜனசமாதான்"
+    "schemeSwachhAlt": "ஸ்வச் ஜனசமாதான்",
+    "dignitariesLabel": "மாண்புமிகு உயர்ந்தோர்",
+    "pmName": "திரு நரேந்திர மோடி",
+    "pmTitle": "மாண்புமிகு பிரதமர்",
+    "pmAlt": "திரு நரேந்திர மோடி, மாண்புமிகு பிரதமர்",
+    "ministerName": "திரு நிதின் கட்கரி",
+    "ministerTitle": "மாண்புமிகு மத்திய அமைச்சர்",
+    "ministerAlt": "திரு நிதின் கட்கரி, மாண்புமிகு மத்திய அமைச்சர்"
   },
   "footer": {
     "quickLinks": "விரைவு இணைப்புகள்",

@@ -42,7 +42,14 @@
     "corpNameSub": "JanSamadhan",
     "crestAlt": "జనసమాధాన్ చిహ్నం",
     "schemeDigitalAlt": "డిజిటల్ జనసమాధాన్",
-    "schemeSwachhAlt": "స్వచ్ఛ జనసమాధాన్"
+    "schemeSwachhAlt": "స్వచ్ఛ జనసమాధాన్",
+    "dignitariesLabel": "గౌరవనీయులు",
+    "pmName": "శ్రీ నరేంద్ర మోదీ",
+    "pmTitle": "గౌరవ ప్రధాని",
+    "pmAlt": "శ్రీ నరేంద్ర మోదీ, గౌరవ ప్రధాని",
+    "ministerName": "శ్రీ నితిన్ గడ్కరి",
+    "ministerTitle": "గౌరవ కేంద్ర మంత్రి",
+    "ministerAlt": "శ్రీ నితిన్ గడ్కరి, గౌరవ కేంద్ర మంత్రి"
   },
   "footer": {
     "quickLinks": "త్వరిత లింక్‌లు",

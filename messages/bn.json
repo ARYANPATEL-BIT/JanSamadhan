@@ -42,7 +42,14 @@
     "corpNameSub": "JanSamadhan",
     "crestAlt": "জনসমাধান প্রতীক",
     "schemeDigitalAlt": "ডিজিটাল জনসমাধান",
-    "schemeSwachhAlt": "স্বচ্ছ জনসমাধান"
+    "schemeSwachhAlt": "স্বচ্ছ জনসমাধান",
+    "dignitariesLabel": "মাননীয় ব্যক্তিত্ব",
+    "pmName": "শ্রী নরেন্দ্র মোদী",
+    "pmTitle": "মাননীয় প্রধানমন্ত্রী",
+    "pmAlt": "শ্রী নরেন্দ্র মোদী, মাননীয় প্রধানমন্ত্রী",
+    "ministerName": "শ্রী নিতিন গড়করি",
+    "ministerTitle": "মাননীয় কেন্দ্রীয় মন্ত্রী",
+    "ministerAlt": "শ্রী নিতিন গড়করি, মাননীয় কেন্দ্রীয় মন্ত্রী"
   },
   "footer": {
     "quickLinks": "দ্রুত লিঙ্ক",

@@ -42,7 +42,14 @@
     "corpNameSub": "जनसमाधान",
     "crestAlt": "JanSamadhan Crest",
     "schemeDigitalAlt": "Digital JanSamadhan",
-    "schemeSwachhAlt": "Swachh JanSamadhan"
+    "schemeSwachhAlt": "Swachh JanSamadhan",
+    "dignitariesLabel": "Hon'ble dignitaries",
+    "pmName": "Shri Narendra Modi",
+    "pmTitle": "Hon'ble Prime Minister",
+    "pmAlt": "Shri Narendra Modi, Hon'ble Prime Minister of India",
+    "ministerName": "Shri Nitin Gadkari",
+    "ministerTitle": "Hon'ble Union Minister",
+    "ministerAlt": "Shri Nitin Gadkari, Hon'ble Union Minister"
   },
   "footer": {
     "quickLinks": "Quick Links",

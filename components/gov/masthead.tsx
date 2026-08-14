@@ -6,17 +6,7 @@ export async function Masthead() {
 
   return (
     <div className="gov-masthead">
-      <div
-        className="gov-container"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "12px",
-        }}
-      >
-        {/* Left: Crest + Identity */}
+      <div className="gov-container gov-masthead__inner">
         <div className="gov-masthead__identity">
           <Image
             src="/crest.svg"
@@ -36,8 +26,7 @@ export async function Masthead() {
           </div>
         </div>
 
-        {/* Right: Scheme logos + Search */}
-        <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
+        <div className="gov-masthead__tools">
           <div className="gov-masthead__schemes">
             <Image
               src="/scheme-digital.svg"
@@ -55,8 +44,7 @@ export async function Masthead() {
             />
           </div>
 
-          {/* Search box */}
-          <div className="gov-masthead__search" style={{ display: "flex" }}>
+          <div className="gov-masthead__search">
             <label htmlFor="masthead-search" className="sr-only">
               {t("common.searchAria")}
             </label>
@@ -68,6 +56,39 @@ export async function Masthead() {
             />
             <button type="button">{t("common.search")}</button>
           </div>
+        </div>
+
+        <div className="gov-masthead__dignitaries" aria-label={t("masthead.dignitariesLabel")}>
+          <figure className="gov-masthead__dignitary">
+            <div className="gov-masthead__photo">
+              <Image
+                src="/dignitaries/pm-narendra-modi.png"
+                alt={t("masthead.pmAlt")}
+                width={140}
+                height={180}
+                priority
+              />
+            </div>
+            <figcaption>
+              <strong>{t("masthead.pmName")}</strong>
+              <span>{t("masthead.pmTitle")}</span>
+            </figcaption>
+          </figure>
+          <figure className="gov-masthead__dignitary">
+            <div className="gov-masthead__photo">
+              <Image
+                src="/dignitaries/nitin-gadkari.png"
+                alt={t("masthead.ministerAlt")}
+                width={140}
+                height={180}
+                priority
+              />
+            </div>
+            <figcaption>
+              <strong>{t("masthead.ministerName")}</strong>
+              <span>{t("masthead.ministerTitle")}</span>
+            </figcaption>
+          </figure>
         </div>
       </div>
     </div>
