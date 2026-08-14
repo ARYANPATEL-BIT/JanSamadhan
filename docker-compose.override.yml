@@ -1,0 +1,6 @@
+# Local only: Fedora already runs system Postgres on 5432.
+# Compose merges `ports` lists, so `!override` replaces the base 5432 mapping.
+services:
+  db:
+    ports: !override
+      - "5433:5432"

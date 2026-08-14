@@ -1,4 +1,4 @@
-import { sql, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { reportMedia, reports, statusEvents, users } from "@/lib/db/schema";
 
@@ -10,7 +10,7 @@ import { reportMedia, reports, statusEvents, users } from "@/lib/db/schema";
  * verified/resolved reports — see CLAUDE.md.)
  */
 export const CIVIC_POINTS_PER_NEW_REPORT = 10;
-import { resolveDepartment } from "@/lib/geo/ward-lookup";
+import { resolveDepartmentForCategory } from "@/lib/geo/ward-lookup";
 import type { DraftTicket } from "@/lib/reports/draft-ticket";
 import type { Category } from "@/lib/pipeline/types";
 
@@ -30,9 +30,7 @@ export interface CreateReportArgs {
 export async function createReportFromTicket(args: CreateReportArgs): Promise<{ id: string }> {
   const { ticket, reporterId, category } = args;
 
-  const dept = ticket.municipalityId
-    ? await resolveDepartment(ticket.municipalityId, category)
-    : null;
+  const dept = await resolveDepartmentForCategory(ticket.municipalityId, category);
 
   const slaDueAt = dept ? new Date(Date.now() + dept.slaHours * 3600 * 1000) : null;
 
@@ -40,7 +38,8 @@ export async function createReportFromTicket(args: CreateReportArgs): Promise<{ 
     const inserted = await tx.execute<{ id: string }>(sql`
       INSERT INTO reports (
         reporter_id, category, category_confidence, location, ward_id,
-        department_id, status, capture_trust, sla_due_at,
+        department_id, status, capture_trust, sla_due_at, description,
+        possible_duplicate, pipeline_combined,
         spam_flag, duplicate_flag, ai_analysis_status, ai_reason
       ) VALUES (
         ${reporterId},
@@ -52,6 +51,9 @@ export async function createReportFromTicket(args: CreateReportArgs): Promise<{ 
         'SUBMITTED',
         ${ticket.captureTrust},
         ${slaDueAt ? slaDueAt.toISOString() : null},
+        ${args.description ?? null},
+        ${ticket.combined === "DUPLICATE_CANDIDATES"},
+        ${ticket.combined},
         ${ticket.spamSuspected ?? false},
         ${ticket.combined === "DUPLICATE_CANDIDATES"},
         ${ticket.aiAnalysisStatus ?? "skipped"},
@@ -68,6 +70,8 @@ export async function createReportFromTicket(args: CreateReportArgs): Promise<{ 
       sha256: ticket.sha256,
       capturePath: ticket.capturePath,
       capturedAt: new Date(ticket.capturedAt),
+      capturedLng: ticket.lng,
+      capturedLat: ticket.lat,
       gpsAccuracyM: ticket.gpsAccuracyM ?? null,
       exifPresent: false,
     });
@@ -177,6 +181,7 @@ export async function getReport(id: string, viewerId: string | null) {
     id: string;
     category: string;
     status: string;
+    reporter_id: string;
     lng: number;
     lat: number;
     upvote_count: number | string;
@@ -196,6 +201,7 @@ export async function getReport(id: string, viewerId: string | null) {
       r.id,
       r.category::text AS category,
       r.status::text AS status,
+      r.reporter_id,
       ST_X(r.location::geometry) AS lng,
       ST_Y(r.location::geometry) AS lat,
       r.upvote_count,

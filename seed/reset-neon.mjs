@@ -15,6 +15,10 @@ async function main() {
 
   // Delete in dependency order (children first)
   await sql`DELETE FROM status_events`;
+  await sql`DELETE FROM verifications`;
+  await sql`DELETE FROM escalations`;
+  await sql`DELETE FROM assignments`;
+  await sql`DELETE FROM department_memberships`;
   await sql`DELETE FROM upvotes`;
   await sql`DELETE FROM report_media`;
   await sql`DELETE FROM reports`;
@@ -32,6 +36,7 @@ async function main() {
   // Read and execute seed.sql
   const seedSql = readFileSync("seed/seed.sql", "utf-8");
   await sql.unsafe(seedSql);
+  await sql.unsafe(readFileSync("seed/staff.sql", "utf-8"));
 
   console.log("✅ Seed complete.");
 

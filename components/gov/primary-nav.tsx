@@ -22,9 +22,19 @@ export function PrimaryNav({ user }: { user: SessionUser | null }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const items = [
+    ...NAV_ITEMS.slice(0, 5),
+    {
+      href: user?.portal === "dept" ? "/dept" : "/login?portal=dept",
+      key: "departmentPortal" as const,
+    },
+    ...NAV_ITEMS.slice(5),
+  ];
+
   function isActive(href: string): boolean {
     if (href === "/") return pathname === "/";
-    return pathname.startsWith(href);
+    if (href.includes("portal=dept") || href === "/dept") return pathname.startsWith("/dept");
+    return pathname.startsWith(href.split("?")[0]);
   }
 
   async function logout() {
@@ -48,7 +58,7 @@ export function PrimaryNav({ user }: { user: SessionUser | null }) {
           className={`gov-nav__list${mobileOpen ? " open" : ""}`}
           role="menubar"
         >
-          {NAV_ITEMS.map((item) => (
+          {items.map((item) => (
             <li key={item.href} className="gov-nav__item" role="none">
               <Link
                 href={item.href}
