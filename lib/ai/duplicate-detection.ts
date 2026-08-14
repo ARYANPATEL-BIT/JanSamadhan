@@ -74,7 +74,7 @@ export async function checkDuplicates(
     WHERE rm.sha256 = ${input.sha256}
       AND r.parent_report_id IS NULL
       AND r.status NOT IN ('REJECTED')
-      AND r.created_at > now() - interval '${AI_CONFIG.duplicateMaxAgeDays} days'
+      AND r.created_at > now() - (${AI_CONFIG.duplicateMaxAgeDays} * interval '1 day')
     LIMIT 5
   `);
 
