@@ -1,6 +1,9 @@
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 
-export function Masthead() {
+export async function Masthead() {
+  const t = await getTranslations();
+
   return (
     <div className="gov-masthead">
       <div
@@ -17,7 +20,7 @@ export function Masthead() {
         <div className="gov-masthead__identity">
           <Image
             src="/crest.svg"
-            alt="Nagarpratinidhi Municipal Corporation Crest"
+            alt={t("masthead.crestAlt")}
             width={60}
             height={60}
             className="gov-masthead__crest"
@@ -25,10 +28,10 @@ export function Masthead() {
           />
           <div>
             <p className="gov-masthead__title-en">
-              Nagarpratinidhi Municipal Corporation
+              {t("masthead.corpName")}
             </p>
             <p className="gov-masthead__title-hi">
-              नगरप्रतिनिधि नगर निगम
+              {t("masthead.corpNameSub")}
             </p>
           </div>
         </div>
@@ -38,14 +41,14 @@ export function Masthead() {
           <div className="gov-masthead__schemes">
             <Image
               src="/scheme-digital.svg"
-              alt="Digital Nagarpratinidhi"
+              alt={t("masthead.schemeDigitalAlt")}
               width={130}
               height={40}
               style={{ height: "36px", width: "auto" }}
             />
             <Image
               src="/scheme-swachh.svg"
-              alt="Swachh Nagarpratinidhi"
+              alt={t("masthead.schemeSwachhAlt")}
               width={130}
               height={40}
               style={{ height: "36px", width: "auto" }}
@@ -55,15 +58,15 @@ export function Masthead() {
           {/* Search box */}
           <div className="gov-masthead__search" style={{ display: "flex" }}>
             <label htmlFor="masthead-search" className="sr-only">
-              Search this website
+              {t("common.searchAria")}
             </label>
             <input
               id="masthead-search"
               type="search"
-              placeholder="Search..."
-              aria-label="Search this website"
+              placeholder={t("common.searchPlaceholder")}
+              aria-label={t("common.searchAria")}
             />
-            <button type="button">Search</button>
+            <button type="button">{t("common.search")}</button>
           </div>
         </div>
       </div>

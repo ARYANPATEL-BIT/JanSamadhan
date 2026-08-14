@@ -3,26 +3,38 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { SessionUser } from "@/lib/auth/session";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Home" },
-  { href: "/report/new", label: "Register Complaint" },
-  { href: "/track", label: "Track Status" },
-  { href: "/feed", label: "Public Reports" },
-  { href: "/departments", label: "Departments" },
-  { href: "/civic-score", label: "Civic Score" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-];
+  { href: "/", key: "home" },
+  { href: "/report/new", key: "registerComplaint" },
+  { href: "/track", key: "trackStatus" },
+  { href: "/feed", key: "publicReports" },
+  { href: "/departments", key: "departments" },
+  { href: "/civic-score", key: "civicScore" },
+  { href: "/about", key: "about" },
+  { href: "/contact", key: "contact" },
+] as const;
 
 export function PrimaryNav({ user }: { user: SessionUser | null }) {
+  const t = useTranslations("nav");
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const items = [
+    ...NAV_ITEMS.slice(0, 5),
+    {
+      href: user?.portal === "dept" ? "/dept" : "/login?portal=dept",
+      key: "departmentPortal" as const,
+    },
+    ...NAV_ITEMS.slice(5),
+  ];
+
   function isActive(href: string): boolean {
     if (href === "/") return pathname === "/";
-    return pathname.startsWith(href);
+    if (href.includes("portal=dept") || href === "/dept") return pathname.startsWith("/dept");
+    return pathname.startsWith(href.split("?")[0]);
   }
 
   async function logout() {
@@ -39,14 +51,14 @@ export function PrimaryNav({ user }: { user: SessionUser | null }) {
           aria-expanded={mobileOpen}
           aria-controls="primary-nav-list"
         >
-          ☰ Menu
+          ☰ {t("menu")}
         </button>
         <ul
           id="primary-nav-list"
           className={`gov-nav__list${mobileOpen ? " open" : ""}`}
           role="menubar"
         >
-          {NAV_ITEMS.map((item) => (
+          {items.map((item) => (
             <li key={item.href} className="gov-nav__item" role="none">
               <Link
                 href={item.href}
@@ -54,7 +66,7 @@ export function PrimaryNav({ user }: { user: SessionUser | null }) {
                 role="menuitem"
                 onClick={() => setMobileOpen(false)}
               >
-                {item.label}
+                {t(item.key)}
               </Link>
             </li>
           ))}
@@ -64,7 +76,7 @@ export function PrimaryNav({ user }: { user: SessionUser | null }) {
             {user ? (
               <>
                 <span className="gov-nav__auth-info">
-                  Civic Score: <span className="gov-nav__auth-score">{user.civicScore}</span>
+                  {t("civicScoreLabel")}: <span className="gov-nav__auth-score">{user.civicScore}</span>
                 </span>
                 <span className="gov-nav__auth-info" style={{ opacity: 0.7 }}>
                   {user.phone}
@@ -74,7 +86,7 @@ export function PrimaryNav({ user }: { user: SessionUser | null }) {
                   className="gov-nav__link"
                   style={{ background: "transparent", border: "none", cursor: "pointer" }}
                 >
-                  Logout
+                  {t("logout")}
                 </button>
               </>
             ) : (
@@ -83,7 +95,7 @@ export function PrimaryNav({ user }: { user: SessionUser | null }) {
                 className="gov-nav__link"
                 onClick={() => setMobileOpen(false)}
               >
-                Login
+                {t("login")}
               </Link>
             )}
           </li>

@@ -1,4 +1,4 @@
-import { sql, eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { reportMedia, reports, statusEvents, users } from "@/lib/db/schema";
 
@@ -10,7 +10,7 @@ import { reportMedia, reports, statusEvents, users } from "@/lib/db/schema";
  * verified/resolved reports — see CLAUDE.md.)
  */
 export const CIVIC_POINTS_PER_NEW_REPORT = 10;
-import { resolveDepartment } from "@/lib/geo/ward-lookup";
+import { resolveDepartmentForCategory } from "@/lib/geo/ward-lookup";
 import type { DraftTicket } from "@/lib/reports/draft-ticket";
 import type { Category } from "@/lib/pipeline/types";
 
@@ -30,9 +30,7 @@ export interface CreateReportArgs {
 export async function createReportFromTicket(args: CreateReportArgs): Promise<{ id: string }> {
   const { ticket, reporterId, category } = args;
 
-  const dept = ticket.municipalityId
-    ? await resolveDepartment(ticket.municipalityId, category)
-    : null;
+  const dept = await resolveDepartmentForCategory(ticket.municipalityId, category);
 
   const slaDueAt = dept ? new Date(Date.now() + dept.slaHours * 3600 * 1000) : null;
 
@@ -40,7 +38,9 @@ export async function createReportFromTicket(args: CreateReportArgs): Promise<{ 
     const inserted = await tx.execute<{ id: string }>(sql`
       INSERT INTO reports (
         reporter_id, category, category_confidence, location, ward_id,
-        department_id, status, capture_trust, sla_due_at
+        department_id, status, capture_trust, sla_due_at, description,
+        possible_duplicate, pipeline_combined,
+        spam_flag, duplicate_flag, ai_analysis_status, ai_reason
       ) VALUES (
         ${reporterId},
         ${category}::category,
@@ -50,7 +50,14 @@ export async function createReportFromTicket(args: CreateReportArgs): Promise<{ 
         ${dept?.departmentId ?? null},
         'SUBMITTED',
         ${ticket.captureTrust},
-        ${slaDueAt ? slaDueAt.toISOString() : null}
+        ${slaDueAt ? slaDueAt.toISOString() : null},
+        ${args.description ?? null},
+        ${ticket.combined === "DUPLICATE_CANDIDATES"},
+        ${ticket.combined},
+        ${ticket.spamSuspected ?? false},
+        ${ticket.combined === "DUPLICATE_CANDIDATES"},
+        ${ticket.aiAnalysisStatus ?? "skipped"},
+        ${null}
       )
       RETURNING id
     `);
@@ -63,6 +70,8 @@ export async function createReportFromTicket(args: CreateReportArgs): Promise<{ 
       sha256: ticket.sha256,
       capturePath: ticket.capturePath,
       capturedAt: new Date(ticket.capturedAt),
+      capturedLng: ticket.lng,
+      capturedLat: ticket.lat,
       gpsAccuracyM: ticket.gpsAccuracyM ?? null,
       exifPresent: false,
     });
@@ -116,12 +125,12 @@ export async function listFeed(viewerId: string | null): Promise<FeedItem[]> {
     status: string;
     lng: number;
     lat: number;
-    upvote_count: number;
+    upvote_count: number | string;
     created_at: string;
     ward_no: number | null;
     municipality_name: string | null;
     thumbnail_url: string | null;
-    viewer_upvoted: boolean;
+    viewer_upvoted: boolean | string;
   }>(sql`
     SELECT
       r.id,
@@ -172,25 +181,37 @@ export async function getReport(id: string, viewerId: string | null) {
     id: string;
     category: string;
     status: string;
+    reporter_id: string;
     lng: number;
     lat: number;
-    upvote_count: number;
+    upvote_count: number | string;
     created_at: string;
     ward_no: number | null;
     municipality_name: string | null;
     department_name: string | null;
     capture_trust: number | null;
-    viewer_upvoted: boolean;
+    category_confidence: number | null;
+    spam_flag: boolean | string;
+    duplicate_flag: boolean | string;
+    ai_analysis_status: string | null;
+    ai_reason: string | null;
+    viewer_upvoted: boolean | string;
   }>(sql`
     SELECT
       r.id,
       r.category::text AS category,
       r.status::text AS status,
+      r.reporter_id,
       ST_X(r.location::geometry) AS lng,
       ST_Y(r.location::geometry) AS lat,
       r.upvote_count,
       r.created_at,
       r.capture_trust,
+      r.category_confidence,
+      r.spam_flag,
+      r.duplicate_flag,
+      r.ai_analysis_status,
+      r.ai_reason,
       w.ward_no,
       m.name AS municipality_name,
       d.name AS department_name,
@@ -216,6 +237,8 @@ export async function getReport(id: string, viewerId: string | null) {
     ...row,
     upvote_count: Number(row.upvote_count) || 0,
     viewer_upvoted: row.viewer_upvoted === true || row.viewer_upvoted === "t",
+    spam_flag: row.spam_flag === true || row.spam_flag === "t",
+    duplicate_flag: row.duplicate_flag === true || row.duplicate_flag === "t",
     media,
   };
 }
@@ -227,7 +250,7 @@ export async function toggleUpvote(
 ): Promise<{ upvoted: boolean; count: number }> {
   // One statement so a double-click cannot insert then immediately delete,
   // and Neon is not hit with a 4-roundtrip transaction (those were taking 3–6s).
-  const rows = await db.execute<{ count: number; upvoted: boolean }>(sql`
+  const rows = await db.execute<{ count: number | string; upvoted: boolean | string }>(sql`
     WITH del AS (
       DELETE FROM upvotes
       WHERE user_id = ${userId}::uuid AND report_id = ${reportId}::uuid

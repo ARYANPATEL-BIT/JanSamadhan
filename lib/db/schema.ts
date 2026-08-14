@@ -108,6 +108,8 @@ export const escalationTriggerEnum = pgEnum("escalation_trigger", [
   "SLA_BREACH",
 ]);
 
+export const staffRoleEnum = pgEnum("staff_role", ["DEPT_ADMIN", "FIELD_STAFF"]);
+
 // ---------------------------------------------------------------------------
 // Tables (PRD §8.1)
 // ---------------------------------------------------------------------------
@@ -200,6 +202,19 @@ export const reports = pgTable(
     // set when this submission was merged as a duplicate of another report
     parentReportId: uuid("parent_report_id"),
     captureTrust: real("capture_trust"),
+    description: text("description"),
+    possibleDuplicate: boolean("possible_duplicate").notNull().default(false),
+    pipelineCombined: text("pipeline_combined"),
+    pipelineNsfw: boolean("pipeline_nsfw").notNull().default(false),
+    pipelineCollusion: boolean("pipeline_collusion").notNull().default(false),
+    nearestHamming: integer("nearest_hamming"),
+    nearestCosine: real("nearest_cosine"),
+    // --- AI fields (sprint 2) ---
+    spamFlag: boolean("spam_flag").notNull().default(false),
+    duplicateFlag: boolean("duplicate_flag").notNull().default(false),
+    /** completed | failed | pending | skipped */
+    aiAnalysisStatus: text("ai_analysis_status").default("pending"),
+    aiReason: text("ai_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     slaDueAt: timestamp("sla_due_at", { withTimezone: true }),
     closedAt: timestamp("closed_at", { withTimezone: true }),
@@ -228,6 +243,8 @@ export const reportMedia = pgTable(
     embedding: vector512("embedding"),
     capturePath: capturePathEnum("capture_path").notNull().default("IN_APP"),
     capturedAt: timestamp("captured_at", { withTimezone: true }),
+    capturedLng: real("captured_lng"),
+    capturedLat: real("captured_lat"),
     gpsAccuracyM: real("gps_accuracy_m"),
     exifPresent: boolean("exif_present").notNull().default(false),
   },
@@ -250,6 +267,26 @@ export const upvotes = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.reportId] })],
+);
+
+/** Staff scoped to one municipality + one department. v1: one row per user. */
+export const departmentMemberships = pgTable(
+  "department_memberships",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" })
+      .unique(),
+    municipalityId: uuid("municipality_id")
+      .notNull()
+      .references(() => municipalities.id, { onDelete: "cascade" }),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => departments.id, { onDelete: "cascade" }),
+    role: staffRoleEnum("role").notNull(),
+  },
+  (t) => [index("dept_memberships_dept_ix").on(t.departmentId)],
 );
 
 export const assignments = pgTable("assignments", {
@@ -299,3 +336,61 @@ export const escalations = pgTable("escalations", {
   escalatedAt: timestamp("escalated_at", { withTimezone: true }).notNull().defaultNow(),
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
 });
+
+// ---------------------------------------------------------------------------
+// AI audit tables (sprint 2 — Gemini integration)
+// ---------------------------------------------------------------------------
+
+/**
+ * Caches AI analysis results per image SHA-256. Prevents re-calling Gemini
+ * for the same image, and provides an audit trail for AI decisions.
+ */
+export const aiAnalyses = pgTable(
+  "ai_analyses",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    imageSha256: varchar("image_sha256", { length: 64 }).notNull(),
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    isCivicIssue: boolean("is_civic_issue"),
+    category: categoryEnum("category"),
+    confidence: real("confidence"),
+    spamSuspected: boolean("spam_suspected"),
+    reason: text("reason"),
+    bbox: text("bbox"), // JSON-encoded [x,y,w,h]
+    /** completed | failed | timeout */
+    status: text("status").notNull().default("completed"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("ai_analyses_sha256_ix").on(t.imageSha256),
+  ],
+);
+
+/**
+ * Records AI image-comparison results (duplicate check or before/after
+ * resolution verification). Advisory only — these FLAGS, not decisions.
+ */
+export const aiComparisonResults = pgTable(
+  "ai_comparison_results",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    reportId: uuid("report_id").references(() => reports.id, { onDelete: "cascade" }),
+    /** "duplicate" or "resolution" */
+    comparisonType: text("comparison_type").notNull(),
+    image1Sha256: varchar("image1_sha256", { length: 64 }).notNull(),
+    image2Sha256: varchar("image2_sha256", { length: 64 }).notNull(),
+    samePhysicalIssue: boolean("same_physical_issue"),
+    sameScene: boolean("same_scene"),
+    issueAddressed: boolean("issue_addressed"),
+    confidence: real("confidence"),
+    reason: text("reason"),
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("ai_comparisons_report_ix").on(t.reportId),
+  ],
+);

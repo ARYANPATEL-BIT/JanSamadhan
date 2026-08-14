@@ -162,7 +162,7 @@ html.high-contrast img {
   html {
     font-size: calc(14px * var(--gov-font-scale, 1));
     line-height: 1.5;
-    font-family: var(--font-noto-sans), 'Noto Sans', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-noto-sans), var(--font-noto-sans-devanagari), var(--font-noto-sans-bengali), var(--font-noto-sans-tamil), var(--font-noto-sans-telugu), 'Noto Sans', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
     scroll-behavior: smooth;
   }
 
@@ -740,11 +740,19 @@ html.high-contrast img {
   border-color: #0b4d94;
 }
 
+.gov-status--assigned,
 .gov-status--in_progress,
-.gov-status--in-progress {
+.gov-status--in-progress,
+.gov-status--pending_citizen_verification {
   background: #fff3e0;
   color: #b36b00;
   border-color: #cc8800;
+}
+
+.gov-status--reopened {
+  background: #fde0e0;
+  color: #7b1113;
+  border-color: #7b1113;
 }
 
 .gov-status--resolved {
@@ -798,6 +806,11 @@ html.high-contrast img {
 .gov-badge--danger {
   background: #fde0e0;
   color: #7b1113;
+}
+
+.gov-badge--warning {
+  background: #fff3e0;
+  color: #b36b00;
 }
 
 .gov-badge--saffron {

@@ -5,7 +5,7 @@ import Link from "next/link";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { toast } from "sonner";
-import { categoryLabel } from "@/lib/categories";
+import { useTranslations } from "next-intl";
 
 interface FeedItem {
   id: string;
@@ -48,6 +48,9 @@ function statusClass(status: string): string {
 }
 
 export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean }) {
+  const t = useTranslations("feed");
+  const tc = useTranslations("categories");
+  const ts = useTranslations("status");
   const [tab, setTab] = useState<"list" | "map">("list");
   const [rows, setRows] = useState(items);
   const [pending, setPending] = useState<string | null>(null);
@@ -58,7 +61,7 @@ export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean
 
   async function upvote(id: string) {
     if (!authed) {
-      toast.error("Log in to upvote.");
+      toast.error(t("toastLoginUpvote"));
       return;
     }
     if (pending) return;
@@ -91,7 +94,7 @@ export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean
         ),
       );
     } catch {
-      toast.error("Upvote failed.");
+      toast.error(t("toastUpvoteFail"));
       setRows((rs) => rs.map((r) => (r.id === id ? snapshot : r)));
     } finally {
       setPending(null);
@@ -106,13 +109,13 @@ export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean
           onClick={() => setTab("list")}
           className={tab === "list" ? "gov-btn gov-btn--primary gov-btn--sm" : "gov-btn gov-btn--secondary gov-btn--sm"}
         >
-          Table View
+          {t("tableView")}
         </button>
         <button
           onClick={() => setTab("map")}
           className={tab === "map" ? "gov-btn gov-btn--primary gov-btn--sm" : "gov-btn gov-btn--secondary gov-btn--sm"}
         >
-          Map View
+          {t("mapView")}
         </button>
       </div>
 
@@ -122,27 +125,27 @@ export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean
         <table className="gov-table">
           <thead>
             <tr>
-              <th>S.No.</th>
-              <th>Category</th>
-              <th>Ward / Area</th>
-              <th>Status</th>
-              <th>Date</th>
-              <th style={{ textAlign: "center" }}>Upvotes</th>
-              <th>Action</th>
+              <th>{t("thSno")}</th>
+              <th>{t("thCategory")}</th>
+              <th>{t("thWardArea")}</th>
+              <th>{t("thStatus")}</th>
+              <th>{t("thDate")}</th>
+              <th style={{ textAlign: "center" }}>{t("thUpvotes")}</th>
+              <th>{t("thAction")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={r.id}>
                 <td>{i + 1}</td>
-                <td>{categoryLabel(r.category)}</td>
+                <td>{tc(r.category)}</td>
                 <td>
                   {r.municipalityName
-                    ? `Ward ${r.wardNo}, ${r.municipalityName}`
-                    : "Unmapped area"}
+                    ? t("wardArea", { ward: r.wardNo ?? "", municipality: r.municipalityName })
+                    : t("unmappedArea")}
                 </td>
                 <td>
-                  <span className={statusClass(r.status)}>{r.status}</span>
+                  <span className={statusClass(r.status)}>{ts(r.status)}</span>
                 </td>
                 <td style={{ whiteSpace: "nowrap" }}>{formatDate(r.createdAt)}</td>
                 <td style={{ textAlign: "center" }}>
@@ -162,7 +165,7 @@ export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean
                     className="gov-btn gov-btn--secondary gov-btn--sm"
                     style={{ padding: "2px 10px" }}
                   >
-                    View
+                    {t("viewDetails")}
                   </Link>
                 </td>
               </tr>
@@ -175,6 +178,9 @@ export function FeedView({ items, authed }: { items: FeedItem[]; authed: boolean
 }
 
 function FeedMap({ items }: { items: FeedItem[] }) {
+  const tc = useTranslations("categories");
+  const ts = useTranslations("status");
+  const t = useTranslations("feed");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -193,14 +199,14 @@ function FeedMap({ items }: { items: FeedItem[] }) {
         .setLngLat([it.lng, it.lat])
         .setPopup(
           new maplibregl.Popup({ offset: 24 }).setHTML(
-            `<strong>${categoryLabel(it.category)}</strong><br/>${it.status} · ▲ ${it.upvoteCount}<br/><a href="/report/${it.id}">View Details</a>`,
+            `<strong>${tc(it.category)}</strong><br/>${ts(it.status)} · ▲ ${it.upvoteCount}<br/><a href="/report/${it.id}">${t("viewDetails")}</a>`,
           ),
         )
         .addTo(map);
     }
 
     return () => map.remove();
-  }, [items]);
+  }, [items, tc, ts, t]);
 
   return (
     <div

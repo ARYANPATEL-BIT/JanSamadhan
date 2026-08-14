@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { Toaster } from "@/components/ui/sonner";
 import { UtilityStrip } from "@/components/gov/utility-strip";
@@ -11,12 +12,13 @@ export default async function PublicLayout({
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
+  const t = await getTranslations("common");
 
   return (
     <>
       {/* Skip to content — visible only on keyboard focus */}
       <a href="#main-content" className="gov-skip-link">
-        Skip to Main Content
+        {t("skipToContent")}
       </a>
 
       {/* GIGW Shell */}

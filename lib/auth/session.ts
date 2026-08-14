@@ -13,12 +13,15 @@ function secretKey(): Uint8Array {
   return new TextEncoder().encode(s);
 }
 
+export type SessionPortal = "citizen" | "dept";
+
 export interface SessionUser {
   id: string;
   phone: string;
   name: string | null;
   civicScore: number;
   lang: string;
+  portal: SessionPortal;
 }
 
 /**
@@ -30,6 +33,7 @@ type Lang = typeof users.$inferInsert["lang"];
 export async function createSessionForPhone(
   phone: string,
   lang?: Lang,
+  portal: SessionPortal = "citizen",
 ): Promise<SessionUser> {
   let [user] = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
   if (!user) {
@@ -39,7 +43,7 @@ export async function createSessionForPhone(
       .returning();
   }
 
-  const token = await new SignJWT({ phone: user.phone })
+  const token = await new SignJWT({ phone: user.phone, portal })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(user.id)
     .setIssuedAt()
@@ -55,7 +59,7 @@ export async function createSessionForPhone(
     maxAge: MAX_AGE_S,
   });
 
-  return toSessionUser(user);
+  return toSessionUser(user, portal);
 }
 
 /** Read the current user from the session cookie, or null. */
@@ -69,7 +73,9 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     const id = payload.sub;
     if (!id) return null;
     const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
-    return user ? toSessionUser(user) : null;
+    if (!user) return null;
+    const portal: SessionPortal = payload.portal === "dept" ? "dept" : "citizen";
+    return toSessionUser(user, portal);
   } catch {
     return null;
   }
@@ -80,12 +86,13 @@ export async function destroySession(): Promise<void> {
   jar.delete(COOKIE);
 }
 
-function toSessionUser(u: typeof users.$inferSelect): SessionUser {
+function toSessionUser(u: typeof users.$inferSelect, portal: SessionPortal): SessionUser {
   return {
     id: u.id,
     phone: u.phone,
     name: u.name,
     civicScore: u.civicScore,
     lang: u.lang,
+    portal,
   };
 }

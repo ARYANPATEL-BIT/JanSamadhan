@@ -29,6 +29,9 @@ export interface DraftTicket {
   suggestedCategory: Category;
   categoryConfidence: number;
   combined: CombinedVerdict;
+  // --- AI fields (sprint 2) ---
+  spamSuspected: boolean;
+  aiAnalysisStatus: "completed" | "failed" | "skipped" | "pending";
 }
 
 function secretKey(): Uint8Array {
