@@ -47,9 +47,9 @@ const notoSansTelugu = Noto_Sans_Telugu({
 });
 
 export const metadata: Metadata = {
-  title: "JanSamadhan — Civic Grievance Redressal Portal | Nagarpratinidhi Municipal Corporation",
+  title: "JanSamadhan — Civic Grievance Redressal Portal",
   description:
-    "Official civic grievance registration and tracking portal of Nagarpratinidhi Municipal Corporation. Register complaints about civic issues, track resolution status, and view public reports.",
+    "Official civic grievance registration and tracking portal of JanSamadhan. Register complaints about civic issues, track resolution status, and view public reports.",
   keywords: "grievance, civic complaint, municipal corporation, pothole, garbage, streetlight, waterlogging",
 };
 

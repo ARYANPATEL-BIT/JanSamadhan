@@ -38,11 +38,11 @@
     "civicScoreLabel": "Civic Score"
   },
   "masthead": {
-    "corpName": "Nagarpratinidhi Municipal Corporation",
-    "corpNameSub": "नगरप्रतिनिधि नगर निगम",
-    "crestAlt": "Nagarpratinidhi Municipal Corporation Crest",
-    "schemeDigitalAlt": "Digital Nagarpratinidhi",
-    "schemeSwachhAlt": "Swachh Nagarpratinidhi"
+    "corpName": "Jansamadhan",
+    "corpNameSub": "जनसमाधान",
+    "crestAlt": "JanSamadhan Crest",
+    "schemeDigitalAlt": "Digital JanSamadhan",
+    "schemeSwachhAlt": "Swachh JanSamadhan"
   },
   "footer": {
     "quickLinks": "Quick Links",
@@ -64,12 +64,12 @@
     "copyright": "Copyright Policy",
     "hyperlinking": "Hyperlinking Policy",
     "accessibility": "Accessibility Statement",
-    "corpName": "Nagarpratinidhi Municipal Corporation",
+    "corpName": "JanSamadhan",
     "addressLine1": "Municipal Bhavan, Civil Lines",
-    "addressLine2": "Nagarpratinidhi — 834001",
+    "addressLine2": "JanSamadhan — 834001",
     "phone": "Phone: 0651-XXXXXXX",
     "email": "Email: grievance@nmc.gov.in",
-    "managedBy": "Website Content Managed by <strong>Nagarpratinidhi Municipal Corporation</strong>",
+    "managedBy": "Website Content Managed by <strong>JanSamadhan</strong>",
     "lastUpdated": "Last Updated on: {date}",
     "visitors": "Visitors: {count}",
     "designedBy": "Designed, Developed and Hosted by <strong>NMC IT Division</strong>",
@@ -87,7 +87,7 @@
   },
   "home": {
     "welcomeTitle": "Welcome to JanSamadhan — Civic Grievance Redressal Portal",
-    "welcomeP1": "JanSamadhan is the official online platform of Nagarpratinidhi Municipal Corporation for registration, tracking, and resolution of civic grievances. Citizens can report infrastructure issues such as potholes, garbage dumps, broken streetlights, waterlogging, and other civic problems through GPS-verified photo capture.",
+    "welcomeP1": "JanSamadhan is the official online platform for registration, tracking, and resolution of civic grievances. Citizens can report infrastructure issues such as potholes, garbage dumps, broken streetlights, waterlogging, and other civic problems through GPS-verified photo capture.",
     "welcomeP2": "All complaints are automatically routed to the concerned department based on ward jurisdiction and issue category. Citizens can track the status of their complaints in real time and view all public reports for transparency.",
     "assistanceLabel": "For assistance:",
     "assistanceText": "Contact the Grievance Cell at 0651-XXXXXXX or email grievance@nmc.gov.in during office hours (Mon–Sat, 10:00 AM – 5:00 PM).",
@@ -107,7 +107,7 @@
     "rowPortalName": "Portal Name",
     "valPortalName": "JanSamadhan — Civic Grievance Redressal Portal",
     "rowAuthority": "Managing Authority",
-    "valAuthority": "Nagarpratinidhi Municipal Corporation",
+    "valAuthority": "JanSamadhan",
     "rowNodalDept": "Nodal Department",
     "valNodalDept": "IT & e-Governance Division",
     "rowCoverage": "Coverage",
