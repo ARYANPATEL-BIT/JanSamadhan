@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { categoryLabel } from "@/lib/categories";
+import { optimizedMediaUrl } from "@/lib/media/url";
 
 export function slaState(createdAt: string, slaDueAt: string | null): "none" | "ok" | "warn" | "over" {
   if (!slaDueAt) return "none";
@@ -69,7 +70,7 @@ export function DeptQueueTable({ rows }: { rows: QueueRow[] }) {
               <td>
                 {r.thumbnailUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={r.thumbnailUrl} alt="" width={48} height={48} style={{ objectFit: "cover", border: "1px solid var(--gov-border)" }} />
+                  <img src={optimizedMediaUrl(r.thumbnailUrl, 96)} alt="" width={48} height={48} style={{ objectFit: "cover", border: "1px solid var(--gov-border)" }} />
                 ) : (
                   "—"
                 )}

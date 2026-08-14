@@ -129,7 +129,6 @@ export async function listFeed(viewerId: string | null): Promise<FeedItem[]> {
     created_at: string;
     ward_no: number | null;
     municipality_name: string | null;
-    thumbnail_url: string | null;
     viewer_upvoted: boolean | string;
   }>(sql`
     SELECT
@@ -142,11 +141,6 @@ export async function listFeed(viewerId: string | null): Promise<FeedItem[]> {
       r.created_at,
       w.ward_no,
       m.name AS municipality_name,
-      (
-        SELECT rm.url FROM report_media rm
-        WHERE rm.report_id = r.id AND rm.kind = 'REPORT'
-        ORDER BY rm.id LIMIT 1
-      ) AS thumbnail_url,
       ${viewerId
         ? sql`EXISTS (SELECT 1 FROM upvotes u WHERE u.report_id = r.id AND u.user_id = ${viewerId})`
         : sql`false`} AS viewer_upvoted
@@ -158,7 +152,7 @@ export async function listFeed(viewerId: string | null): Promise<FeedItem[]> {
       (CASE WHEN r.status IN ('RESOLVED','REJECTED') THEN 0 ELSE 1 END) DESC,
       (r.upvote_count + 1) / POWER((EXTRACT(EPOCH FROM (now() - r.created_at)) / 3600) + 2, 1.5) DESC,
       r.created_at DESC
-    LIMIT 100
+    LIMIT 50
   `);
 
   return rows.map((r) => ({
@@ -171,7 +165,7 @@ export async function listFeed(viewerId: string | null): Promise<FeedItem[]> {
     createdAt: r.created_at,
     wardNo: r.ward_no,
     municipalityName: r.municipality_name,
-    thumbnailUrl: r.thumbnail_url,
+    thumbnailUrl: null,
     viewerUpvoted: r.viewer_upvoted === true || r.viewer_upvoted === "t",
   }));
 }

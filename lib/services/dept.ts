@@ -78,24 +78,24 @@ export async function listDeptQueue(
       r.reopen_count,
       r.priority_score,
       w.ward_no,
-      (
-        SELECT rm.url FROM report_media rm
-        WHERE rm.report_id = r.id AND rm.kind = 'REPORT'
-        ORDER BY rm.id LIMIT 1
-      ) AS thumbnail_url,
-      (
-        SELECT u.name FROM assignments a
-        JOIN users u ON u.id = a.staff_id
-        WHERE a.report_id = r.id
-        ORDER BY a.assigned_at DESC LIMIT 1
-      ) AS assignee_name,
-      (
-        SELECT a.staff_id FROM assignments a
-        WHERE a.report_id = r.id
-        ORDER BY a.assigned_at DESC LIMIT 1
-      ) AS assignee_id
+      thumb.url AS thumbnail_url,
+      asg.name AS assignee_name,
+      asg.staff_id AS assignee_id
     FROM reports r
     LEFT JOIN wards w ON w.id = r.ward_id
+    LEFT JOIN LATERAL (
+      SELECT rm.url FROM report_media rm
+      WHERE rm.report_id = r.id AND rm.kind = 'REPORT'
+      ORDER BY rm.id LIMIT 1
+    ) thumb ON true
+    LEFT JOIN LATERAL (
+      SELECT a.staff_id, u.name
+      FROM assignments a
+      JOIN users u ON u.id = a.staff_id
+      WHERE a.report_id = r.id
+      ORDER BY a.assigned_at DESC
+      LIMIT 1
+    ) asg ON true
     WHERE r.department_id = ${departmentId}::uuid
       AND r.parent_report_id IS NULL
       AND r.status NOT IN ('RESOLVED', 'REJECTED')

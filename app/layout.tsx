@@ -14,37 +14,57 @@ import "./globals.css";
 const notoSans = Noto_Sans({
   variable: "--font-noto-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
   display: "swap",
 });
 
 const notoSansDevanagari = Noto_Sans_Devanagari({
-  variable: "--font-noto-sans-devanagari",
+  variable: "--font-noto-devanagari",
   subsets: ["devanagari"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
   display: "swap",
+  preload: false,
 });
 
 const notoSansBengali = Noto_Sans_Bengali({
-  variable: "--font-noto-sans-bengali",
+  variable: "--font-noto-bengali",
   subsets: ["bengali"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
   display: "swap",
+  preload: false,
 });
 
 const notoSansTamil = Noto_Sans_Tamil({
-  variable: "--font-noto-sans-tamil",
+  variable: "--font-noto-tamil",
   subsets: ["tamil"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
   display: "swap",
+  preload: false,
 });
 
 const notoSansTelugu = Noto_Sans_Telugu({
-  variable: "--font-noto-sans-telugu",
+  variable: "--font-noto-telugu",
   subsets: ["telugu"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
   display: "swap",
+  preload: false,
 });
+
+function scriptFont(locale: string) {
+  switch (locale) {
+    case "hi":
+    case "mr":
+      return notoSansDevanagari;
+    case "bn":
+      return notoSansBengali;
+    case "ta":
+      return notoSansTamil;
+    case "te":
+      return notoSansTelugu;
+    default:
+      return null;
+  }
+}
 
 export const metadata: Metadata = {
   title: "JanSamadhan — Civic Grievance Redressal Portal",
@@ -54,16 +74,14 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // Locale is resolved from the NEXT_LOCALE cookie (see i18n/request.ts). The
-  // matching NextIntlClientProvider makes messages available to Client
-  // Components without re-serialising them per subtree.
   const locale = await getLocale();
+  const script = scriptFont(locale);
 
   return (
     <html
       lang={locale}
       id="top"
-      className={`${notoSans.variable} ${notoSansDevanagari.variable} ${notoSansBengali.variable} ${notoSansTamil.variable} ${notoSansTelugu.variable}`}
+      className={`${notoSans.variable}${script ? ` ${script.variable}` : ""}`}
     >
       <body>
         <NextIntlClientProvider>

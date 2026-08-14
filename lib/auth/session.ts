@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { eq } from "drizzle-orm";
@@ -43,7 +44,13 @@ export async function createSessionForPhone(
       .returning();
   }
 
-  const token = await new SignJWT({ phone: user.phone, portal })
+  const token = await new SignJWT({
+    phone: user.phone,
+    portal,
+    name: user.name,
+    civicScore: user.civicScore,
+    lang: user.lang,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(user.id)
     .setIssuedAt()
@@ -63,7 +70,7 @@ export async function createSessionForPhone(
 }
 
 /** Read the current user from the session cookie, or null. */
-export async function getCurrentUser(): Promise<SessionUser | null> {
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
@@ -71,15 +78,25 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   try {
     const { payload } = await jwtVerify(token, secretKey());
     const id = payload.sub;
-    if (!id) return null;
+    if (!id || typeof payload.phone !== "string") return null;
+    const portal: SessionPortal = payload.portal === "dept" ? "dept" : "citizen";
+    if (typeof payload.civicScore === "number") {
+      return {
+        id,
+        phone: payload.phone,
+        name: typeof payload.name === "string" ? payload.name : null,
+        civicScore: payload.civicScore,
+        lang: typeof payload.lang === "string" ? payload.lang : "en",
+        portal,
+      };
+    }
     const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
     if (!user) return null;
-    const portal: SessionPortal = payload.portal === "dept" ? "dept" : "citizen";
     return toSessionUser(user, portal);
   } catch {
     return null;
   }
-}
+});
 
 export async function destroySession(): Promise<void> {
   const jar = await cookies();

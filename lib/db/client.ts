@@ -29,8 +29,9 @@ const client =
     max: 10,
     ssl: ssl ? "require" : false,
     prepare: false, // Neon pooler / PgBouncer cannot use named prepared statements
-    connect_timeout: 30,
+    connect_timeout: 10,
     idle_timeout: 20,
+    max_lifetime: 60 * 30,
   });
 if (process.env.NODE_ENV !== "production") globalForDb._pg = client;
 

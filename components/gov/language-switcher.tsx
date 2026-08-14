@@ -36,6 +36,7 @@ export function LanguageSwitcher() {
           border: "none",
           color: "inherit",
           font: "inherit",
+          fontFamily: "system-ui, sans-serif",
           cursor: "pointer",
         }}
       >

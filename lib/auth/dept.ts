@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
@@ -13,11 +14,15 @@ export interface DeptActor {
   municipalityId: string;
 }
 
-export async function getDeptActor(): Promise<DeptActor | null> {
+export const getDeptActor = cache(async (): Promise<DeptActor | null> => {
   const user = await getCurrentUser();
   if (!user || user.portal !== "dept") return null;
   const [m] = await db
-    .select()
+    .select({
+      role: departmentMemberships.role,
+      departmentId: departmentMemberships.departmentId,
+      municipalityId: departmentMemberships.municipalityId,
+    })
     .from(departmentMemberships)
     .where(eq(departmentMemberships.userId, user.id))
     .limit(1);
@@ -28,7 +33,7 @@ export async function getDeptActor(): Promise<DeptActor | null> {
     departmentId: m.departmentId,
     municipalityId: m.municipalityId,
   };
-}
+});
 
 export async function requireDeptActor(role?: StaffRole): Promise<DeptActor | NextResponse> {
   const actor = await getDeptActor();

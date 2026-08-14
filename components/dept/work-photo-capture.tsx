@@ -32,6 +32,7 @@ export function WorkPhotoCapture({
   const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [camOn, setCamOn] = useState(false);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -58,9 +59,10 @@ export function WorkPhotoCapture({
   }, []);
 
   useEffect(() => {
+    if (!camOn) return;
     void startCamera();
     return () => stopCamera();
-  }, [startCamera, stopCamera]);
+  }, [camOn, startCamera, stopCamera]);
 
   async function resolveCoords(): Promise<{ lng: number; lat: number; accuracy: string }> {
     try {
@@ -149,7 +151,7 @@ export function WorkPhotoCapture({
         </p>
         {error ? (
           <div className="gov-notice gov-notice--info" style={{ marginBottom: "8px" }}>{error}</div>
-        ) : (
+        ) : camOn ? (
           <video
             ref={videoRef}
             playsInline
@@ -157,6 +159,10 @@ export function WorkPhotoCapture({
             autoPlay
             style={{ width: "100%", maxHeight: "320px", background: "#111", objectFit: "cover" }}
           />
+        ) : (
+          <p style={{ fontSize: "14px", color: "var(--text-muted)", marginBottom: "8px" }}>
+            Open the camera or upload a file.
+          </p>
         )}
         <canvas ref={canvasRef} hidden />
         <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
@@ -164,10 +170,16 @@ export function WorkPhotoCapture({
           <button
             type="button"
             className="gov-btn gov-btn--primary"
-            onClick={shutter}
+            onClick={() => {
+              if (!camOn) {
+                setCamOn(true);
+                return;
+              }
+              shutter();
+            }}
             disabled={busy}
           >
-            {busy ? "Uploading…" : `Take ${kind} photo`}
+            {busy ? "Uploading…" : camOn ? `Take ${kind} photo` : "Open camera"}
           </button>
           <button
             type="button"

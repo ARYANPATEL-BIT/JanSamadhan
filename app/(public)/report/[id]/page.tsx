@@ -7,6 +7,7 @@ import { UpvoteButton } from "@/components/upvote-button";
 import { CitizenVerify } from "@/components/citizen-verify";
 import { Breadcrumbs } from "@/components/gov/breadcrumbs";
 import { SidebarNav } from "@/components/gov/sidebar-nav";
+import { optimizedMediaUrl } from "@/lib/media/url";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,7 @@ export default async function ReportDetailPage({
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={beforeMedia.url}
+                  src={optimizedMediaUrl(beforeMedia.url, 720)}
                   alt={`${report.category} - before`}
                   style={{
                     width: "100%",
@@ -78,7 +79,7 @@ export default async function ReportDetailPage({
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={afterMedia.url}
+                  src={optimizedMediaUrl(afterMedia.url, 720)}
                   alt={`${report.category} - after`}
                   style={{
                     width: "100%",
@@ -92,7 +93,7 @@ export default async function ReportDetailPage({
           ) : primary ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              src={primary.url}
+              src={optimizedMediaUrl(primary.url, 960)}
               alt={category}
               style={{
                 width: "100%",

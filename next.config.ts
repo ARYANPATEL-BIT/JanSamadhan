@@ -4,6 +4,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["cloudinary"],
   experimental: {
+    optimizePackageImports: ["lucide-react", "sonner"],
     serverActions: {
       bodySizeLimit: "12mb",
     },

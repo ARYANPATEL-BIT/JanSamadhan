@@ -1,0 +1,28 @@
+---
+description: NAGAR SETU SIH pitch vs what this repo actually ships
+alwaysApply: true
+---
+
+# NAGAR SETU (this repo)
+
+SIH PS **25031** — Crowdsourced Civic Issue Reporting and Resolution System. Theme **Clean & Green Technology**, category **Software**, proposed by **Government of Jharkhand**. Confirm theme/IDs on the live portal before a 2026 submission.
+
+**Pitch name:** NAGAR SETU — “Report in 30 seconds. Verified fixes, not claimed ones.”
+**Code/UI name today:** JanSamadhan / `civic-web`. Do not silently rename the product.
+
+Full slide copy + Eraser flowchart prompt: `docs/SIH-idea-submission.md`. Product spec: `docs/PRD.md`. Sprint order: `Claude.md`.
+
+## Pitch vs prototype (do not blur these)
+
+| Pitch | Repo now |
+|---|---|
+| Three panels: Citizen · Department · Admin | Citizen web only |
+| YOLO + CLIP + pHash FastAPI | `PIPELINE_MODE=stub`; `lib/pipeline/http.ts` throws |
+| Closure needs citizen sign-off + geofenced before/after | Schema ready; no staff/verify UI |
+| Civic score on *verified/resolved* reports | Points on **novel submit** (`CIVIC_POINTS_PER_NEW_REPORT`) |
+| WhatsApp OTP | Self-hosted mock OTP (`SmsSender` / console) |
+| Ranked queue (schools/hospitals, SLA age) | Public feed ranking only |
+
+When implementing: ship the **modified/stubbed** PRD version (Aadhaar, ministry API, scheme payouts stay stubbed). Layer 1 **flags, never hard-blocks**. Duplicate radius **30 m / 60 m linear**. Capture trust = GPS + server timestamp at shutter, not EXIF.
+
+Build order: sprint 1 solid → ML + duplicate UI → department panel → admin. Do not scaffold React Native yet.
