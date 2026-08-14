@@ -55,7 +55,7 @@ export async function handleWorkPhotoPost(
     return NextResponse.json(
       await uploadWorkPhoto(actor, id, kind, {
         bytes,
-        contentType: validation.detectedMime ?? file.type || "image/jpeg",
+        contentType: validation.detectedMime ?? file.type ?? "image/jpeg",
         lng,
         lat,
         accuracy: num(form.get("accuracy")),
